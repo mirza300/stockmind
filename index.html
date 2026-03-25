@@ -215,7 +215,9 @@ main{background:var(--bg0);padding:20px;overflow-y:auto;}
 </div>
 
 <script>
-const BASE='http://localhost:5000';
+const BASE = window.location.hostname === 'localhost' 
+  ? 'http://localhost:5000' 
+  : '';
 let fhKey=localStorage.getItem('sm4_fhk')||'';
 let anthropicKey=localStorage.getItem('sm4_antk')||'';
 let wl=JSON.parse(localStorage.getItem('sm4_wl')||'[]');
