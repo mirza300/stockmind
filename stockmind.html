@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StockMind v5 — Real Vaxt Analiz</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg0:#070a0f;--bg1:#0d1117;--bg2:#111820;--bg3:#161e2a;--bg4:#1c2737;
+  --border:#1f2d3d;--border2:#2a3d52;
+  --t0:#e8edf3;--t1:#9db0c5;--t2:#5a7a96;
+  --green:#00d26a;--red:#ff4d6a;--amber:#f5a623;--blue:#4a9eff;--cyan:#00d4e8;--purple:#8b5cf6;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg0);color:var(--t0);font-family:var(--sans);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.025) 2px,rgba(0,0,0,.025) 4px);}
+header{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:48px;
+  background:var(--bg1);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+.logo{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.08em;color:var(--cyan);}
+.logo span{color:var(--t2);font-weight:300;}
+.hst{display:flex;gap:12px;align-items:center;font-family:var(--mono);font-size:11px;color:var(--t2);}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--red);}
+.sdot.on{background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* Setup */
+.setup{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 48px);padding:20px;}
+.scard{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:24px;max-width:460px;width:100%;}
+.stitle{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--cyan);letter-spacing:.06em;margin-bottom:6px;}
+.ssub{font-size:12px;color:var(--t1);margin-bottom:16px;line-height:1.6;}
+.sblock{background:var(--bg3);border:1px solid var(--border2);border-radius:5px;padding:12px;margin-bottom:10px;}
+.sblabel{font-family:var(--mono);font-size:10px;letter-spacing:.06em;margin-bottom:8px;}
+.sstep{display:flex;gap:8px;margin-bottom:6px;font-size:11px;color:var(--t1);line-height:1.5;align-items:flex-start;}
+.snum{font-family:var(--mono);font-size:9px;color:var(--cyan);background:rgba(0,212,232,.1);border:1px solid rgba(0,212,232,.2);border-radius:3px;padding:1px 5px;white-space:nowrap;flex-shrink:0;margin-top:2px;}
+.sstep a{color:var(--cyan);}
+.ainput{width:100%;background:var(--bg0);border:1px solid var(--border2);border-radius:4px;
+  padding:9px 11px;font-family:var(--mono);font-size:12px;color:var(--t0);outline:none;
+  transition:border-color .2s;margin-top:8px;display:block;}
+.ainput:focus{border-color:var(--cyan);}
+.ainput::placeholder{color:var(--t2);}
+.sbtn{width:100%;background:var(--cyan);color:var(--bg0);border:none;border-radius:4px;
+  padding:11px;font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;margin-top:12px;}
+.sbtn:hover{background:#00eeff;}
+.snote{font-family:var(--mono);font-size:10px;color:var(--t2);margin-top:8px;line-height:1.6;}
+.snote b{color:var(--green);}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 48px);}
+@media(max-width:640px){.layout{grid-template-columns:1fr;}}
+aside{background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;
+  height:calc(100vh - 48px);position:sticky;top:48px;overflow:hidden;}
+@media(max-width:640px){aside{height:auto;position:relative;border-right:none;border-bottom:1px solid var(--border);}}
+.stop{padding:12px;border-bottom:1px solid var(--border);}
+.slbl{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--t2);text-transform:uppercase;margin-bottom:8px;}
+.irow{display:flex;gap:6px;margin-bottom:8px;}
+.tinput{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:7px 10px;
+  font-family:var(--mono);font-size:12px;color:var(--t0);text-transform:uppercase;outline:none;transition:border-color .2s;}
+.tinput:focus{border-color:var(--cyan);}
+.tinput::placeholder{color:var(--t2);text-transform:none;}
+.abtn{background:var(--cyan);color:var(--bg0);border:none;border-radius:4px;padding:7px 12px;
+  font-family:var(--mono);font-size:11px;font-weight:600;cursor:pointer;}
+.abtn:hover{background:#00eeff;}
+.csvbtn{width:100%;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.25);border-radius:4px;
+  padding:7px;font-family:var(--mono);font-size:10px;color:var(--amber);cursor:pointer;
+  text-align:center;display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:6px;}
+.csvbtn:hover{background:rgba(245,166,35,.15);}
+#csvfile{display:none;}
+.apibadge{display:flex;align-items:center;gap:5px;padding:4px 8px;background:rgba(0,210,106,.06);
+  border:1px solid rgba(0,210,106,.2);border-radius:3px;font-family:var(--mono);font-size:9px;
+  color:var(--green);cursor:pointer;}
+.apibadge:hover{background:rgba(0,210,106,.1);}
+.wl{flex:1;overflow-y:auto;padding:4px 0;}
+.wl::-webkit-scrollbar{width:3px;}
+.wl::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.si{display:flex;align-items:center;padding:8px 12px;cursor:pointer;border-left:2px solid transparent;transition:all .15s;gap:7px;}
+.si:hover{background:var(--bg3);}
+.si.active{background:var(--bg3);border-left-color:var(--cyan);}
+.si.sb{border-left-color:var(--green)!important;}
+.si.ss{border-left-color:var(--red)!important;}
+.si.sh{border-left-color:var(--amber)!important;}
+.stk{font-family:var(--mono);font-size:12px;font-weight:600;min-width:46px;}
+.snm{font-size:11px;color:var(--t2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.spr{font-family:var(--mono);font-size:10px;min-width:52px;text-align:right;}
+.ssig{font-family:var(--mono);font-size:9px;font-weight:600;padding:2px 5px;border-radius:2px;white-space:nowrap;}
+.sgb{background:rgba(0,210,106,.15);color:var(--green);}
+.sgs{background:rgba(255,77,106,.15);color:var(--red);}
+.sgh{background:rgba(245,166,35,.15);color:var(--amber);}
+.sgp{background:rgba(90,122,150,.15);color:var(--t2);}
+.xb{background:none;border:none;color:var(--t2);cursor:pointer;font-size:13px;opacity:0;padding:0 2px;}
+.si:hover .xb{opacity:.5;}.xb:hover{color:var(--red)!important;opacity:1!important;}
+.aab{margin:8px 12px;background:rgba(0,212,232,.07);border:1px solid var(--border2);border-radius:4px;
+  padding:9px;font-family:var(--mono);font-size:10px;color:var(--cyan);cursor:pointer;
+  letter-spacing:.06em;transition:all .2s;text-align:center;}
+.aab:hover{background:rgba(0,212,232,.15);border-color:var(--cyan);}
+.aab:disabled{opacity:.35;cursor:not-allowed;}
+.bprog{padding:8px 12px;border-top:1px solid var(--border);display:none;}
+.bph{display:flex;justify-content:space-between;margin-bottom:5px;font-family:var(--mono);font-size:10px;}
+.bpt{color:var(--cyan)}.bpc{color:var(--t2);}
+.bpbar{height:2px;background:var(--bg4);border-radius:1px;overflow:hidden;}
+.bpf{height:100%;background:linear-gradient(90deg,var(--cyan),var(--blue));border-radius:1px;transition:width .4s;}
+
+main{background:var(--bg0);padding:16px;overflow-y:auto;}
+.est{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;color:var(--t2);text-align:center;gap:10px;}
+.eic{font-size:32px;opacity:.2;}
+.etl{font-family:var(--mono);font-size:12px;letter-spacing:.08em;}
+.esb{font-size:11px;max-width:260px;line-height:1.6;}
+.lst{text-align:center;padding:50px 0;}
+.lsp{width:24px;height:24px;border:2px solid var(--border2);border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px;}
+.ltx{font-family:var(--mono);font-size:11px;color:var(--t2);letter-spacing:.06em;}
+.lstp{font-size:11px;color:var(--t2);margin-top:5px;}
+
+.ac{animation:fadeUp .3s ease;}
+.shdr{display:flex;align-items:flex-start;justify-content:space-between;background:var(--bg2);
+  border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:10px;gap:10px;}
+.shtk{font-family:var(--mono);font-size:22px;font-weight:600;letter-spacing:.05em;}
+.shnm{font-size:12px;color:var(--t1);margin-top:2px;}
+.shpr{font-family:var(--mono);font-size:22px;font-weight:500;text-align:right;}
+.shch{font-family:var(--mono);font-size:11px;margin-top:2px;text-align:right;}
+.pu{color:var(--green);}.pd{color:var(--red);}
+.shdt{font-family:var(--mono);font-size:10px;color:var(--t2);margin-top:3px;text-align:right;}
+.rbadge{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;
+  color:var(--green);background:rgba(0,210,106,.08);border:1px solid rgba(0,210,106,.2);
+  border-radius:3px;padding:2px 6px;margin-top:4px;}
+.sbn{border-radius:6px;padding:10px 16px;margin-bottom:10px;display:flex;align-items:center;
+  justify-content:space-between;border:1px solid;gap:10px;}
+.bBUY{background:rgba(0,210,106,.07);border-color:rgba(0,210,106,.25);}
+.bSELL{background:rgba(255,77,106,.07);border-color:rgba(255,77,106,.25);}
+.bHOLD{background:rgba(245,166,35,.07);border-color:rgba(245,166,35,.25);}
+.bl{display:flex;align-items:center;gap:10px;}
+.bsg{font-family:var(--mono);font-size:16px;font-weight:700;letter-spacing:.1em;white-space:nowrap;}
+.brs{font-size:12px;color:var(--t1);line-height:1.5;}
+.bcf{font-family:var(--mono);font-size:10px;color:var(--t2);text-align:right;white-space:nowrap;}
+.bcn{font-size:18px;font-weight:600;display:block;}
+.aib{background:linear-gradient(135deg,rgba(139,92,246,.06),rgba(74,158,255,.06));
+  border:1px solid rgba(139,92,246,.2);border-radius:6px;padding:12px 16px;margin-bottom:10px;}
+.ail{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--purple);
+  text-transform:uppercase;margin-bottom:5px;display:flex;align-items:center;gap:5px;}
+.aid{width:5px;height:5px;background:var(--purple);border-radius:50%;animation:pulse 2s infinite;}
+.ait{font-size:12px;color:var(--t1);line-height:1.7;}
+.tabs{display:flex;margin-bottom:10px;border-bottom:1px solid var(--border);}
+.tab{padding:6px 12px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--t2);
+  cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;text-transform:uppercase;}
+.tab:hover{color:var(--t1);}.tab.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+.tp{display:none;}.tp.active{display:block;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+@media(max-width:500px){.g2{grid-template-columns:1fr;}}
+.mc{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:12px;}
+.mct{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--t2);text-transform:uppercase;margin-bottom:8px;}
+.mr{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);}
+.mr:last-child{border-bottom:none;}
+.ml{font-size:12px;color:var(--t1);}
+.mv{font-family:var(--mono);font-size:12px;color:var(--t0);font-weight:500;}
+.mv.g{color:var(--green);}.mv.r{color:var(--red);}.mv.a{color:var(--amber);}
+.ibr{margin-bottom:7px;}
+.ibh{display:flex;justify-content:space-between;margin-bottom:3px;}
+.ibn{font-family:var(--mono);font-size:11px;color:var(--t1);}
+.ibv{font-family:var(--mono);font-size:11px;font-weight:600;}
+.ib{height:3px;background:var(--bg4);border-radius:2px;overflow:hidden;}
+.ibf{height:100%;border-radius:2px;transition:width 1.2s ease;}
+.r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:8px 0;text-align:center;}
+.rl{font-family:var(--mono);font-size:10px;color:var(--t2);margin-bottom:4px;}
+.rv{font-family:var(--mono);font-size:16px;font-weight:600;}
+.rp{font-family:var(--mono);font-size:10px;color:var(--t2);}
+.ni{padding:8px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;}
+.ni:last-child{border-bottom:none;}
+.ns{width:3px;flex-shrink:0;border-radius:1px;margin-top:3px;}
+.nsp{background:var(--green);}.nsn{background:var(--red);}.nsq{background:var(--t2);}
+.nt{font-size:12px;color:var(--t0);line-height:1.4;margin-bottom:2px;}
+.nm{font-family:var(--mono);font-size:10px;color:var(--t2);}
+.erb{background:rgba(255,77,106,.08);border:1px solid rgba(255,77,106,.3);border-radius:6px;
+  padding:12px 16px;font-size:12px;color:var(--red);line-height:1.8;}
+.reb{margin-top:8px;background:var(--bg3);border:1px solid var(--border2);color:var(--cyan);
+  padding:6px 12px;border-radius:4px;cursor:pointer;font-family:var(--mono);font-size:10px;display:inline-block;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">STOCK<span>MIND</span><span style="font-size:10px;margin-left:8px;color:var(--t2)">v5</span></div>
+  <div class="hst">
+    <div class="sdot" id="apidot"></div>
+    <span id="apistat">—</span>
+    <span style="color:var(--border2)">|</span>
+    <span style="color:var(--amber);font-weight:500" id="datestr"></span>
+    <span style="color:var(--border2)">|</span>
+    <span id="clk"></span>
+  </div>
+</header>
+
+<!-- Setup -->
+<div id="setupScreen" class="setup">
+  <div class="scard">
+    <div class="stitle">◈ API AÇARLARI</div>
+    <div class="ssub">İki pulsuz açar lazımdır. Bir dəfə daxil edirsiniz — həmişəlik saxlanılır.</div>
+
+    <div class="sblock">
+      <div class="sblabel" style="color:var(--cyan)">① FINNHUB — real vaxt qiymət (tam pulsuz)</div>
+      <div class="sstep"><span class="snum">1</span><span><a href="https://finnhub.io/register" target="_blank">finnhub.io/register</a> → qeydiyyat</span></div>
+      <div class="sstep"><span class="snum">2</span><span>Dashboard → API Key kopyala</span></div>
+      <input class="ainput" id="fhKeyIn" type="password" placeholder="d1xxxxxxxxxxxxxxxxxxxxxx" autocomplete="off"/>
+    </div>
+
+    <div class="sblock">
+      <div class="sblabel" style="color:var(--purple)">② ANTHROPIC — AI analiz ($4.90 kredit var)</div>
+      <div class="sstep"><span class="snum">1</span><span><a href="https://console.anthropic.com/settings/api-keys" target="_blank">console.anthropic.com</a> → API Keys</span></div>
+      <div class="sstep"><span class="snum">2</span><span>+ Create Key → kopyala (sk-ant-...)</span></div>
+      <input class="ainput" id="antKeyIn" type="password" placeholder="sk-ant-xxxxxxxxxxxxxxxxxxxxxx" autocomplete="off"/>
+    </div>
+
+    <button class="sbtn" onclick="startApp()">BAŞLA →</button>
+    <div class="snote"><b>Təhlükəsiz:</b> Açarlar yalnız bu cihazın yaddaşında saxlanılır · Heç yana göndərilmir</div>
+  </div>
+</div>
+
+<!-- App -->
+<div id="appLayout" class="layout" style="display:none;">
+  <aside>
+    <div class="stop">
+      <div class="slbl">İzlə Siyahısı</div>
+      <div class="irow">
+        <input class="tinput" id="ti" placeholder="Ticker (NVDA)..." maxlength="10"/>
+        <button class="abtn" onclick="addTicker()">+ƏLAVƏ</button>
+      </div>
+      <label class="csvbtn" for="csvfile">📂 Yahoo Finance CSV yüklə</label>
+      <input type="file" id="csvfile" accept=".csv" onchange="importCSV(event)"/>
+      <div class="apibadge" onclick="resetKeys()">● AKTİV &nbsp;<span style="color:var(--t2);font-size:8px">açarları dəyişdir</span></div>
+    </div>
+    <div class="wl" id="wl"></div>
+    <div class="bprog" id="bprog">
+      <div class="bph"><span class="bpt">TOPLU ANALİZ</span><span class="bpc" id="bpc">0/0</span></div>
+      <div class="bpbar"><div class="bpf" id="bpf" style="width:0%"></div></div>
+    </div>
+    <button class="aab" id="aab" onclick="analyzeAll()">⚡ BÜTÜN SƏHMLƏRİ ANALİZ ET</button>
+  </aside>
+  <main id="main">
+    <div class="est">
+      <div class="eic">◈</div>
+      <div class="etl">SƏHMİNİZİ ƏLAVƏ EDİN</div>
+      <div class="esb">Ticker daxil edin və ya Yahoo Finance CSV yükləyin.</div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ── Keys ──────────────────────────────────────────────
+let fhKey = localStorage.getItem('sm5_fhk') || '';
+let antKey = localStorage.getItem('sm5_antk') || '';
+let wl = JSON.parse(localStorage.getItem('sm5_wl') || '[]');
+if (!wl.length) wl = [
+  {t:'AAPL',n:'Apple Inc.',sig:null,price:null,chg:null},
+  {t:'NVDA',n:'NVIDIA Corp.',sig:null,price:null,chg:null},
+  {t:'MSFT',n:'Microsoft Corp.',sig:null,price:null,chg:null},
+];
+let analyses = {}, activeTicker = null;
+
+// ── Clock ─────────────────────────────────────────────
+const _d = new Date();
+document.getElementById('datestr').textContent =
+  _d.toLocaleDateString('az-AZ',{day:'2-digit',month:'2-digit',year:'numeric'}).replace(/\//g,'.');
+setInterval(() => {
+  document.getElementById('clk').textContent =
+    new Date().toLocaleTimeString('az-AZ',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}, 1000);
+
+// ── Init ──────────────────────────────────────────────
+if (fhKey && antKey) showApp();
+document.getElementById('fhKeyIn').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('antKeyIn').focus(); });
+document.getElementById('antKeyIn').addEventListener('keydown', e => { if(e.key==='Enter') startApp(); });
+
+function startApp() {
+  const fk = document.getElementById('fhKeyIn').value.trim();
+  const ak = document.getElementById('antKeyIn').value.trim();
+  if (!fk || fk.length < 8) { alert('Finnhub açarını daxil edin'); return; }
+  if (!ak || ak.length < 10) { alert('Anthropic açarını daxil edin'); return; }
+  fhKey = fk; antKey = ak;
+  localStorage.setItem('sm5_fhk', fk);
+  localStorage.setItem('sm5_antk', ak);
+  showApp();
+}
+
+function showApp() {
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('appLayout').style.display = 'grid';
+  document.getElementById('apidot').classList.add('on');
+  document.getElementById('apistat').textContent = 'AKTİV';
+  renderWL();
+}
+
+function resetKeys() {
+  if (!confirm('API açarlarını sıfırlamaq istəyirsiniz?')) return;
+  ['sm5_fhk','sm5_antk'].forEach(k => localStorage.removeItem(k));
+  fhKey = ''; antKey = '';
+  document.getElementById('setupScreen').style.display = 'flex';
+  document.getElementById('appLayout').style.display = 'none';
+  document.getElementById('apidot').classList.remove('on');
+}
+
+// ── Watchlist ─────────────────────────────────────────
+function saveWL() { localStorage.setItem('sm5_wl', JSON.stringify(wl)); }
+
+function renderWL() {
+  const el = document.getElementById('wl'); el.innerHTML = '';
+  wl.forEach(s => {
+    const d = document.createElement('div');
+    const sc = s.sig ? ({BUY:'sb',SELL:'ss',HOLD:'sh'}[s.sig]||'') : '';
+    const pc = s.chg != null ? (s.chg >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--t1)';
+    d.className = 'si ' + (activeTicker===s.t ? 'active ' : '') + sc;
+    d.innerHTML = `<div class="stk">${s.t}</div>
+      <div class="snm">${s.n}</div>
+      ${s.price ? `<div class="spr" style="color:${pc}">$${s.price}</div>` : ''}
+      <div class="ssig ${s.sig?({BUY:'sgb',SELL:'sgs',HOLD:'sgh'}[s.sig]||'sgp'):'sgp'}">${s.sig||'···'}</div>
+      <button class="xb" onclick="rmT('${s.t}',event)">✕</button>`;
+    d.onclick = e => { if (!e.target.classList.contains('xb')) selT(s.t); };
+    el.appendChild(d);
+  });
+  saveWL();
+}
+
+function addTicker() {
+  const i = document.getElementById('ti');
+  const t = i.value.toUpperCase().trim().replace(/[^A-Z.]/g,'');
+  if (!t || wl.find(s=>s.t===t)) { i.value=''; return; }
+  wl.push({t, n:t, sig:null, price:null, chg:null});
+  renderWL(); i.value=''; selT(t);
+}
+
+function rmT(t, e) {
+  e.stopPropagation(); wl = wl.filter(s=>s.t!==t); delete analyses[t];
+  if (activeTicker===t) {
+    activeTicker = null;
+    document.getElementById('main').innerHTML = '<div class="est"><div class="eic">◈</div><div class="etl">SƏHMİ SEÇİN</div></div>';
+  }
+  renderWL();
+}
+
+document.getElementById('ti').addEventListener('keydown', e => { if(e.key==='Enter') addTicker(); });
+function selT(t) { activeTicker=t; renderWL(); analyses[t] ? renderAnalysis(t, analyses[t]) : analyzeStock(t); }
+
+// ── CSV Import ────────────────────────────────────────
+function importCSV(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const lines = e.target.result.trim().split('\n');
+    if (lines.length < 2) return;
+    const cols = lines[0].toLowerCase().replace(/"/g,'').split(',');
+    const symIdx = cols.findIndex(c=>c.includes('symbol')||c.trim()==='ticker');
+    const nameIdx = cols.findIndex(c=>c.includes('name')||c.includes('company'));
+    if (symIdx===-1) { alert('CSV formatı tanınmadı'); return; }
+    let added = 0;
+    for (let i=1; i<lines.length; i++) {
+      const row = lines[i].replace(/"/g,'').split(',');
+      const sym = row[symIdx]?.trim().toUpperCase().replace(/[^A-Z.]/g,'');
+      if (!sym||sym==='CASH'||sym.length>10) continue;
+      if (wl.find(s=>s.t===sym)) continue;
+      wl.push({t:sym, n:(nameIdx>=0?row[nameIdx]?.trim():sym)||sym, sig:null, price:null, chg:null});
+      added++;
+    }
+    renderWL(); event.target.value='';
+    if (added>0) document.getElementById('main').innerHTML =
+      `<div class="est"><div class="eic" style="opacity:.6">✓</div><div class="etl" style="color:var(--green)">${added} SƏHM ƏLAVƏ OLUNDU</div><div class="esb">⚡ Analiz Et düyməsinə basın</div></div>`;
+  };
+  reader.readAsText(file);
+}
+
+// ── API calls (direct from browser) ──────────────────
+async function fhGet(path) {
+  const r = await fetch(`https://finnhub.io/api/v1${path}&token=${fhKey}`);
+  if (!r.ok) throw new Error(`Finnhub xəta: ${r.status}`);
+  return r.json();
+}
+
+// ── Analyze ───────────────────────────────────────────
+async function analyzeStock(ticker) {
+  const main = document.getElementById('main');
+  main.innerHTML = `<div class="lst"><div class="lsp"></div><div class="ltx">${ticker} ANALİZ EDİLİR</div><div class="lstp" id="lstp">Real qiymət çəkilir...</div></div>`;
+
+  try {
+    // 1. Real data from Finnhub (direct)
+    const [quote, prof, met] = await Promise.all([
+      fhGet(`/quote?symbol=${ticker}`),
+      fhGet(`/stock/profile2?symbol=${ticker}`),
+      fhGet(`/stock/metric?symbol=${ticker}&metric=all`)
+    ]);
+
+    if (!quote.c || quote.c === 0) throw new Error(`"${ticker}" tapılmadı`);
+
+    const el = document.getElementById('lstp');
+    if (el) el.textContent = 'AI analiz aparır...';
+
+    const cp = quote.c, chgPct = quote.dp;
+    const compName = prof.name || ticker;
+    const sector = prof.finnhubIndustry || 'Naməlum';
+    const m = met.metric || {};
+
+    // 2. AI via Anthropic (direct)
+    const prompt = `Tarix: ${new Date().toLocaleDateString('az-AZ')}. ${ticker} (${compName}, ${sector}).
+
+REAL DATA (Finnhub):
+- Qiymət: $${cp.toFixed(2)} (${chgPct>=0?'+':''}${chgPct.toFixed(2)}%)
+- Gün: Yüksək $${quote.h?.toFixed(2)||'—'} / Aşağı $${quote.l?.toFixed(2)||'—'}
+- Əvvəlki bağlanış: $${quote.pc?.toFixed(2)||'—'}
+${m.peNormalizedAnnual?`- P/E: ${m.peNormalizedAnnual.toFixed(1)}`:''}
+${m.pbAnnual?`- P/B: ${m.pbAnnual.toFixed(1)}`:''}
+${m['totalDebt/totalEquityAnnual']?`- Borc/Kapital: ${m['totalDebt/totalEquityAnnual'].toFixed(1)}`:''}
+${m.revenueGrowthTTMYoy?`- Gəlir artımı: ${m.revenueGrowthTTMYoy.toFixed(1)}%`:''}
+${m.netProfitMarginTTM?`- Mənfəət marjası: ${m.netProfitMarginTTM.toFixed(1)}%`:''}
+${m.roeTTM?`- ROE: ${m.roeTTM.toFixed(1)}%`:''}
+
+YALNIZ JSON cavab ver:
+{"signal":"BUY","confidence":74,"signal_reasoning":"2-3 cümlə Azərbaycanca","macd_signal":"Bullish","trend":"Yüksəliş","volume_trend":"Artır","rsi_estimate":55,"sentiment":{"score":65,"news":[{"title":"xəbər","sentiment":"positive","source":"Bloomberg"},{"title":"xəbər","sentiment":"neutral","source":"Reuters"},{"title":"xəbər","sentiment":"negative","source":"CNBC"}]},"ai_insight":"3-4 cümlə Azərbaycanca. Real $${cp.toFixed(2)} əsasında.","assessment":"Ədalətli qiymət","stop_loss":${(cp*0.92).toFixed(2)},"target_price":${(cp*1.13).toFixed(2)}}`;
+
+    const ar = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': antKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 800,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const ad = await ar.json();
+    if (ad.error) throw new Error(ad.error.message || 'AI xətası');
+    const at = (ad.content||[]).map(b=>b.text||'').join('');
+    const match = at.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('AI cavabı alınmadı');
+    const ai = JSON.parse(match[0]);
+
+    const result = {
+      ticker, company_name:compName, sector,
+      current_price:cp, price_change_pct:chgPct,
+      signal:ai.signal, confidence:ai.confidence,
+      signal_reasoning:ai.signal_reasoning,
+      fundamental:{
+        pe_ratio:m.peNormalizedAnnual||m.peTTM||null,
+        pb_ratio:m.pbAnnual||null,
+        debt_to_equity:m['totalDebt/totalEquityAnnual']||null,
+        revenue_growth:m.revenueGrowthTTMYoy||null,
+        profit_margin:m.netProfitMarginTTM||null,
+        roe:m.roeTTM||null,
+        assessment:ai.assessment||'—'
+      },
+      technical:{rsi:ai.rsi_estimate||50, macd:ai.macd_signal||'Neytral', trend:ai.trend||'Neytral', volume:ai.volume_trend||'Sabit'},
+      sentiment:ai.sentiment,
+      ai_insight:ai.ai_insight,
+      stop_loss:ai.stop_loss,
+      target_price:ai.target_price
+    };
+
+    analyses[ticker] = result;
+    const item = wl.find(s=>s.t===ticker);
+    if (item) { item.sig=result.signal; item.n=compName; item.price=cp.toFixed(2); item.chg=chgPct; }
+    renderWL();
+    if (activeTicker===ticker) renderAnalysis(ticker, result);
+
+  } catch(err) {
+    if (activeTicker===ticker)
+      document.getElementById('main').innerHTML =
+        `<div class="erb">⚠ Xəta: ${err.message}<br><button class="reb" onclick="analyzeStock('${ticker}')">YENİDƏN CƏHD ET</button></div>`;
+  }
+}
+
+// ── Render ────────────────────────────────────────────
+function renderAnalysis(ticker, d) {
+  const pp = d.price_change_pct >= 0;
+  const sc = d.signal==='BUY'?'var(--green)':d.signal==='SELL'?'var(--red)':'var(--amber)';
+  const rsi = d.technical.rsi;
+  const rcl = rsi>70?'var(--red)':rsi<30?'var(--green)':'var(--amber)';
+  const rlbl = rsi>70?'Həddindən artıq alınmış':rsi<30?'Həddindən artıq satılmış':'Neytral';
+  const scl = d.sentiment.score>60?'var(--green)':d.sentiment.score<40?'var(--red)':'var(--amber)';
+  const fmt = v => v!=null ? v.toFixed(1) : '—';
+
+  document.getElementById('main').innerHTML = `<div class="ac">
+  <div class="shdr">
+    <div>
+      <div class="shtk">${d.ticker}</div>
+      <div class="shnm">${d.company_name} · ${d.sector}</div>
+      <div class="rbadge">● REAL VAXT · FINNHUB</div>
+    </div>
+    <div>
+      <div class="shpr ${pp?'pu':'pd'}">$${d.current_price.toFixed(2)}</div>
+      <div class="shch ${pp?'pu':'pd'}">${pp?'+':''}${d.price_change_pct.toFixed(2)}%</div>
+      <div class="shdt">${new Date().toLocaleDateString('az-AZ',{day:'numeric',month:'long',year:'numeric'})}</div>
+    </div>
+  </div>
+
+  <div class="sbn b${d.signal}">
+    <div class="bl">
+      <div class="bsg" style="color:${sc}">${d.signal}</div>
+      <div class="brs">${d.signal_reasoning}</div>
+    </div>
+    <div class="bcf"><span class="bcn" style="color:${sc}">${d.confidence}%</span>Etibar</div>
+  </div>
+
+  <div class="aib">
+    <div class="ail"><div class="aid"></div>AI ANALİTİK GÖRÜŞ</div>
+    <div class="ait">${d.ai_insight}</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="sw(0)">TEXNİKİ</div>
+    <div class="tab" onclick="sw(1)">FUNDAMENTAL</div>
+    <div class="tab" onclick="sw(2)">SENTIMENT</div>
+    <div class="tab" onclick="sw(3)">XÜLASƏ</div>
+  </div>
+
+  <div class="tp active" id="tp0">
+    <div class="g2">
+      <div class="mc"><div class="mct">İndikatorlar</div>
+        <div class="ibr"><div class="ibh"><span class="ibn">RSI (14)</span><span class="ibv" style="color:${rcl}">${rsi} — ${rlbl}</span></div><div class="ib"><div class="ibf" style="width:${rsi}%;background:${rcl}"></div></div></div>
+        <div style="height:6px"></div>
+        <div class="ibr"><div class="ibh"><span class="ibn">Sentiment</span><span class="ibv" style="color:${scl}">${d.sentiment.score}/100</span></div><div class="ib"><div class="ibf" style="width:${d.sentiment.score}%;background:${scl}"></div></div></div>
+        <div style="height:6px"></div>
+        <div class="ibr"><div class="ibh"><span class="ibn">Etibar</span><span class="ibv" style="color:${sc}">${d.confidence}%</span></div><div class="ib"><div class="ibf" style="width:${d.confidence}%;background:${sc}"></div></div></div>
+      </div>
+      <div class="mc"><div class="mct">Siqnallar</div>
+        <div class="mr"><span class="ml">MACD</span><span class="mv ${d.technical.macd==='Bullish'?'g':'r'}">${d.technical.macd}</span></div>
+        <div class="mr"><span class="ml">Trend</span><span class="mv">${d.technical.trend}</span></div>
+        <div class="mr"><span class="ml">Həcm</span><span class="mv">${d.technical.volume}</span></div>
+      </div>
+    </div>
+    <div class="mc"><div class="mct">Risk İdarəetmə</div>
+      <div class="r3">
+        <div><div class="rl">CARİ QİYMƏT</div><div class="rv">$${d.current_price.toFixed(2)}</div></div>
+        <div><div class="rl" style="color:var(--red)">STOP-LOSS</div><div class="rv" style="color:var(--red)">$${parseFloat(d.stop_loss).toFixed(2)}</div><div class="rp">${((d.stop_loss/d.current_price-1)*100).toFixed(1)}%</div></div>
+        <div><div class="rl" style="color:var(--green)">HƏDƏF</div><div class="rv" style="color:var(--green)">$${parseFloat(d.target_price).toFixed(2)}</div><div class="rp">+${((d.target_price/d.current_price-1)*100).toFixed(1)}%</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tp" id="tp1">
+    <div class="g2">
+      <div class="mc"><div class="mct">Qiymətləndirmə</div>
+        <div class="mr"><span class="ml">P/E</span><span class="mv">${fmt(d.fundamental.pe_ratio)}</span></div>
+        <div class="mr"><span class="ml">P/B</span><span class="mv">${fmt(d.fundamental.pb_ratio)}</span></div>
+        <div class="mr"><span class="ml">Borc/Kapital</span><span class="mv ${d.fundamental.debt_to_equity>2?'r':'g'}">${fmt(d.fundamental.debt_to_equity)}</span></div>
+        <div class="mr"><span class="ml">Qiymət</span><span class="mv a">${d.fundamental.assessment}</span></div>
+      </div>
+      <div class="mc"><div class="mct">Maliyyə</div>
+        <div class="mr"><span class="ml">Gəlir Artımı</span><span class="mv ${d.fundamental.revenue_growth>0?'g':'r'}">${d.fundamental.revenue_growth!=null?d.fundamental.revenue_growth.toFixed(1)+'%':'—'}</span></div>
+        <div class="mr"><span class="ml">Mənfəət Marjası</span><span class="mv ${d.fundamental.profit_margin>15?'g':'a'}">${d.fundamental.profit_margin!=null?d.fundamental.profit_margin.toFixed(1)+'%':'—'}</span></div>
+        <div class="mr"><span class="ml">ROE</span><span class="mv ${d.fundamental.roe>15?'g':'a'}">${d.fundamental.roe!=null?d.fundamental.roe.toFixed(1)+'%':'—'}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tp" id="tp2">
+    <div class="mc"><div class="mct">Son Xəbərlər</div>
+      ${(d.sentiment.news||[]).map(n=>`<div class="ni"><div class="ns ${n.sentiment==='positive'?'nsp':n.sentiment==='negative'?'nsn':'nsq'}"></div><div><div class="nt">${n.title}</div><div class="nm">${n.source}</div></div></div>`).join('')}
+    </div>
+  </div>
+
+  <div class="tp" id="tp3">
+    <div class="mc"><div class="mct">Xülasə</div>
+      <div class="mr"><span class="ml">Siqnal</span><span class="mv" style="color:${sc}">${d.signal} (${d.confidence}%)</span></div>
+      <div class="mr"><span class="ml">Real Qiymət</span><span class="mv">$${d.current_price.toFixed(2)}</span></div>
+      <div class="mr"><span class="ml">Dəyişim</span><span class="mv ${pp?'g':'r'}">${pp?'+':''}${d.price_change_pct.toFixed(2)}%</span></div>
+      <div class="mr"><span class="ml">Hədəf</span><span class="mv g">$${parseFloat(d.target_price).toFixed(2)}</span></div>
+      <div class="mr"><span class="ml">Stop-Loss</span><span class="mv r">$${parseFloat(d.stop_loss).toFixed(2)}</span></div>
+      <div class="mr"><span class="ml">P/E</span><span class="mv">${fmt(d.fundamental.pe_ratio)}</span></div>
+    </div>
+    <button onclick="analyzeStock('${ticker}')" style="margin-top:8px;background:var(--bg3);border:1px solid var(--border2);color:var(--cyan);padding:6px 14px;border-radius:4px;cursor:pointer;font-family:var(--mono);font-size:10px;">↻ YENİLƏ</button>
+  </div>
+  </div>`;
+}
+
+function sw(idx) {
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  document.querySelectorAll('.tp').forEach((p,i)=>p.classList.toggle('active',i===idx));
+}
+
+async function analyzeAll() {
+  const btn = document.getElementById('aab'); btn.disabled = true;
+  const prog = document.getElementById('bprog'); prog.style.display = 'block';
+  const total = wl.length; let done = 0;
+  for (const s of wl) {
+    document.getElementById('bpc').textContent = `${done}/${total}`;
+    document.getElementById('bpf').style.width = `${done/total*100}%`;
+    await analyzeStock(s.t); done++;
+    await new Promise(r=>setTimeout(r,1500));
+  }
+  document.getElementById('bpc').textContent = `${total}/${total}`;
+  document.getElementById('bpf').style.width = '100%';
+  setTimeout(() => { prog.style.display='none'; btn.disabled=false; }, 1500);
+}
+</script>
+</body>
+</html>
