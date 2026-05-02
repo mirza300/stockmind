@@ -78,16 +78,16 @@ aside{background:var(--bg1);border-right:1px solid var(--border);display:flex;fl
 .wl{flex:1;overflow-y:auto;padding:4px 0;}
 .wl::-webkit-scrollbar{width:3px;}
 .wl::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
-.si{display:flex;align-items:center;padding:8px 12px;cursor:pointer;border-left:2px solid transparent;transition:all .15s;gap:7px;}
+.si{display:flex;align-items:center;padding:8px 12px;cursor:pointer;border-left:2px solid transparent;transition:all .15s;gap:6px;min-height:44px;}
 .si:hover{background:var(--bg3);}
 .si.active{background:var(--bg3);border-left-color:var(--cyan);}
 .si.sb{border-left-color:var(--green)!important;}
 .si.ss{border-left-color:var(--red)!important;}
 .si.sh{border-left-color:var(--amber)!important;}
-.stk{font-family:var(--mono);font-size:12px;font-weight:600;min-width:46px;}
-.snm{font-size:11px;color:var(--t2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.spr{font-family:var(--mono);font-size:10px;min-width:52px;text-align:right;}
-.ssig{font-family:var(--mono);font-size:9px;font-weight:600;padding:2px 5px;border-radius:2px;white-space:nowrap;}
+.stk{font-family:var(--mono);font-size:12px;font-weight:600;min-width:44px;flex-shrink:0;}
+.snm{font-size:11px;color:var(--t2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+.spr{font-family:var(--mono);font-size:10px;min-width:48px;text-align:right;flex-shrink:0;}
+.ssig{font-family:var(--mono);font-size:9px;font-weight:600;padding:2px 4px;border-radius:2px;white-space:nowrap;flex-shrink:0;}
 .sgb{background:rgba(0,210,106,.15);color:var(--green);}
 .sgs{background:rgba(255,77,106,.15);color:var(--red);}
 .sgh{background:rgba(245,166,35,.15);color:var(--amber);}
@@ -232,11 +232,6 @@ main{background:var(--bg0);padding:16px;overflow-y:auto;}
       <div class="apibadge" onclick="resetKeys()">● AKTİV &nbsp;<span style="color:var(--t2);font-size:8px">açarları dəyişdir</span></div>
     </div>
     <div class="wl" id="wl"></div>
-    <div class="bprog" id="bprog">
-      <div class="bph"><span class="bpt">TOPLU ANALİZ</span><span class="bpc" id="bpc">0/0</span></div>
-      <div class="bpbar"><div class="bpf" id="bpf" style="width:0%"></div></div>
-    </div>
-    <button class="aab" id="aab" onclick="analyzeAll()">⚡ BÜTÜN SƏHMLƏRİ ANALİZ ET</button>
   </aside>
   <main id="main">
     <div class="est">
@@ -689,4 +684,4 @@ async function analyzeAll() {
 }
 </script>
 </body>
-</ht
+</html>
