@@ -382,39 +382,58 @@ async function analyzeStock(ticker) {
   main.innerHTML = `<div class="lst"><div class="lsp"></div><div class="ltx">${ticker} ANALİZ EDİLİR</div><div class="lstp" id="lstp">Real qiymət çəkilir...</div></div>`;
  
   try {
-    // 1. Real data from Finnhub (direct)
-    const [quote, prof, met] = await Promise.all([
+    const [quote, prof, met, rec] = await Promise.all([
       fhGet(`/quote?symbol=${ticker}`),
       fhGet(`/stock/profile2?symbol=${ticker}`),
-      fhGet(`/stock/metric?symbol=${ticker}&metric=all`)
+      fhGet(`/stock/metric?symbol=${ticker}&metric=all`),
+      fhGet(`/stock/recommendation?symbol=${ticker}`).catch(()=>([]))
     ]);
  
     if (!quote.c || quote.c === 0) throw new Error(`"${ticker}" tapılmadı`);
  
+    // Analyst price target
+    let priceTarget = null;
+    try { priceTarget = await fhGet(`/stock/price-target?symbol=${ticker}`); } catch(e){}
+ 
     const el = document.getElementById('lstp');
-    if (el) el.textContent = 'AI analiz aparır...';
+    if (el) el.textContent = 'AI professional trader analizi...';
  
     const cp = quote.c, chgPct = quote.dp;
     const compName = prof.name || ticker;
     const sector = prof.finnhubIndustry || 'Naməlum';
     const m = met.metric || {};
  
-    // 2. AI via Anthropic (direct)
-    const prompt = `Tarix: ${new Date().toLocaleDateString('az-AZ')}. ${ticker} (${compName}, ${sector}).
+    // Analyst consensus
+    const latestRec = Array.isArray(rec) && rec.length > 0 ? rec[0] : null;
+    const totalAnalysts = latestRec ? (latestRec.strongBuy+latestRec.buy+latestRec.hold+latestRec.sell+latestRec.strongSell) : 0;
+    const bullishAnalysts = latestRec ? (latestRec.strongBuy+latestRec.buy) : 0;
  
-REAL DATA (Finnhub):
-- Qiymət: $${cp.toFixed(2)} (${chgPct>=0?'+':''}${chgPct.toFixed(2)}%)
-- Gün: Yüksək $${quote.h?.toFixed(2)||'—'} / Aşağı $${quote.l?.toFixed(2)||'—'}
-- Əvvəlki bağlanış: $${quote.pc?.toFixed(2)||'—'}
-${m.peNormalizedAnnual?`- P/E: ${m.peNormalizedAnnual.toFixed(1)}`:''}
-${m.pbAnnual?`- P/B: ${m.pbAnnual.toFixed(1)}`:''}
-${m['totalDebt/totalEquityAnnual']?`- Borc/Kapital: ${m['totalDebt/totalEquityAnnual'].toFixed(1)}`:''}
-${m.revenueGrowthTTMYoy?`- Gəlir artımı: ${m.revenueGrowthTTMYoy.toFixed(1)}%`:''}
-${m.netProfitMarginTTM?`- Mənfəət marjası: ${m.netProfitMarginTTM.toFixed(1)}%`:''}
-${m.roeTTM?`- ROE: ${m.roeTTM.toFixed(1)}%`:''}
+    // Price target data
+    const ptAvg = priceTarget?.targetMean || null;
+    const ptHigh = priceTarget?.targetHigh || null;
+    const ptLow = priceTarget?.targetLow || null;
+    const ptUpside = ptAvg ? ((ptAvg/cp-1)*100).toFixed(1) : null;
  
-YALNIZ JSON cavab ver:
-{"signal":"BUY","confidence":74,"signal_reasoning":"2-3 cümlə Azərbaycanca","macd_signal":"Bullish","trend":"Yüksəliş","volume_trend":"Artır","rsi_estimate":55,"sentiment":{"score":65,"news":[{"title":"xəbər","sentiment":"positive","source":"Bloomberg"},{"title":"xəbər","sentiment":"neutral","source":"Reuters"},{"title":"xəbər","sentiment":"negative","source":"CNBC"}]},"ai_insight":"3-4 cümlə Azərbaycanca. Real $${cp.toFixed(2)} əsasında.","assessment":"Ədalətli qiymət","stop_loss":${(cp*0.92).toFixed(2)},"target_price":${(cp*1.13).toFixed(2)}}`;
+    const prompt = `Sən 20 illik təcrübəsi olan Wall Street-in professional trader və portfolio managerısın. ${ticker} (${compName}, ${sector}) üçün hərtərəfli analiz apar.
+ 
+REAL BAZAR DATA (${new Date().toLocaleDateString('az-AZ')}):
+━ Cari qiymət: $${cp.toFixed(2)} (${chgPct>=0?'+':''}${chgPct.toFixed(2)}% bu gün)
+━ Günlük aralıq: $${quote.l?.toFixed(2)} — $${quote.h?.toFixed(2)}
+━ Əvvəlki bağlanış: $${quote.pc?.toFixed(2)}
+${ptAvg?`━ Analyst price target: Orta $${ptAvg.toFixed(2)} | Yüksək $${ptHigh?.toFixed(2)} | Aşağı $${ptLow?.toFixed(2)} (${ptUpside>0?'+':''}${ptUpside}% potensial)`:''}
+${totalAnalysts>0?`━ Analyst konsensus: ${bullishAnalysts} bullish / ${totalAnalysts} cəmi (${latestRec.strongBuy} strong buy, ${latestRec.buy} buy, ${latestRec.hold} hold, ${latestRec.sell} sell, ${latestRec.strongSell} strong sell)`:''}
+${m.peNormalizedAnnual?`━ P/E: ${m.peNormalizedAnnual.toFixed(1)}`:''}${m.pbAnnual?` | P/B: ${m.pbAnnual.toFixed(1)}`:''}
+${m.revenueGrowthTTMYoy?`━ Gəlir artımı: ${m.revenueGrowthTTMYoy.toFixed(1)}%`:''}${m.netProfitMarginTTM?` | Mənfəət marjası: ${m.netProfitMarginTTM.toFixed(1)}%`:''}${m.roeTTM?` | ROE: ${m.roeTTM.toFixed(1)}%`:''}
+${m['totalDebt/totalEquityAnnual']?`━ Borc/Kapital: ${m['totalDebt/totalEquityAnnual'].toFixed(1)}`:''}
+ 
+Professional trader kimi düşün:
+1. Risk/Reward nisbəti nədir?
+2. Analyst konsensus bazarın görüşünü necə əks etdirir?
+3. Qiymət hədəfinə çatmaq üçün katalizator nədir?
+4. Əsas risk faktorları nələrdir?
+ 
+YALNIZ JSON cavab ver (başqa heç nə yazma):
+{"signal":"BUY","confidence":74,"signal_reasoning":"Professional trader perspektivindən 2-3 cümlə. Risk/reward, katalizator və ya risk haqqında konkret məlumat.","trader_note":"Bu sehmi portfolio-ya əlavə etmək üçün ideal giriş nöqtəsi və ya gözləmə strategiyası. 1-2 cümlə konkret tövsiyə.","macd_signal":"Bullish","trend":"Yüksəliş","volume_trend":"Artır","rsi_estimate":55,"price_direction":"UP","direction_reasoning":"Analitiklərin proqnozu və texniki göstəricilər əsasında qiymətin istiqamətini izah et.","sentiment":{"score":65,"news":[{"title":"real 2026 xəbər başlığı","sentiment":"positive","source":"Bloomberg"},{"title":"xəbər","sentiment":"neutral","source":"Reuters"},{"title":"xəbər","sentiment":"negative","source":"CNBC"}]},"ai_insight":"4 cümlə Azərbaycanca. Real data, analyst konsensus, 2026 makro mühiti, konkret risk faktorları.","assessment":"Ədalətli qiymət","stop_loss":${(cp*0.92).toFixed(2)},"target_price":${ptAvg?ptAvg.toFixed(2):(cp*1.13).toFixed(2)}}`;
  
     const ar = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -426,7 +445,7 @@ YALNIZ JSON cavab ver:
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 800,
+        max_tokens: 1000,
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -443,6 +462,16 @@ YALNIZ JSON cavab ver:
       current_price:cp, price_change_pct:chgPct,
       signal:ai.signal, confidence:ai.confidence,
       signal_reasoning:ai.signal_reasoning,
+      trader_note:ai.trader_note,
+      price_direction:ai.price_direction||'NEUTRAL',
+      direction_reasoning:ai.direction_reasoning,
+      forecast:{
+        pt_avg:ptAvg, pt_high:ptHigh, pt_low:ptLow, pt_upside:ptUpside,
+        total_analysts:totalAnalysts,
+        strong_buy:latestRec?.strongBuy||0, buy:latestRec?.buy||0,
+        hold:latestRec?.hold||0, sell:latestRec?.sell||0,
+        strong_sell:latestRec?.strongSell||0
+      },
       fundamental:{
         pe_ratio:m.peNormalizedAnnual||m.peTTM||null,
         pb_ratio:m.pbAnnual||null,
@@ -481,6 +510,19 @@ function renderAnalysis(ticker, d) {
   const rlbl = rsi>70?'Həddindən artıq alınmış':rsi<30?'Həddindən artıq satılmış':'Neytral';
   const scl = d.sentiment.score>60?'var(--green)':d.sentiment.score<40?'var(--red)':'var(--amber)';
   const fmt = v => v!=null ? v.toFixed(1) : '—';
+  const f = d.forecast || {};
+ 
+  // Price direction arrow
+  const dir = d.price_direction || 'NEUTRAL';
+  const dirColor = dir==='UP'?'var(--green)':dir==='DOWN'?'var(--red)':'var(--amber)';
+  const dirIcon = dir==='UP'?'↑':dir==='DOWN'?'↓':'→';
+  const dirText = dir==='UP'?'YUXARI':dir==='DOWN'?'AŞAĞI':'NEYTRAL';
+ 
+  // Analyst bar
+  const total = f.total_analysts || 0;
+  const bullPct = total>0 ? Math.round((f.strong_buy+f.buy)/total*100) : 0;
+  const holdPct = total>0 ? Math.round(f.hold/total*100) : 0;
+  const bearPct = total>0 ? Math.round((f.sell+f.strong_sell)/total*100) : 0;
  
   document.getElementById('main').innerHTML = `<div class="ac">
   <div class="shdr">
@@ -496,6 +538,18 @@ function renderAnalysis(ticker, d) {
     </div>
   </div>
  
+  <!-- Price Direction Banner -->
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--t2);letter-spacing:.08em;margin-bottom:4px;">QİYMƏT İSTİQAMƏTİ (12 AY)</div>
+      <div style="font-size:12px;color:var(--t1);">${d.direction_reasoning||'—'}</div>
+    </div>
+    <div style="text-align:center;flex-shrink:0;">
+      <div style="font-family:var(--mono);font-size:32px;font-weight:700;color:${dirColor};line-height:1;">${dirIcon}</div>
+      <div style="font-family:var(--mono);font-size:10px;font-weight:600;color:${dirColor};">${dirText}</div>
+    </div>
+  </div>
+ 
   <div class="sbn b${d.signal}">
     <div class="bl">
       <div class="bsg" style="color:${sc}">${d.signal}</div>
@@ -504,19 +558,56 @@ function renderAnalysis(ticker, d) {
     <div class="bcf"><span class="bcn" style="color:${sc}">${d.confidence}%</span>Etibar</div>
   </div>
  
+  ${d.trader_note?`<div style="background:rgba(74,158,255,.06);border:1px solid rgba(74,158,255,.2);border-radius:6px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:var(--t1);line-height:1.6;">
+    <span style="font-family:var(--mono);font-size:9px;color:var(--blue);letter-spacing:.08em;">💼 TRADER TÖVSIYƏSI &nbsp;</span>${d.trader_note}</div>`:''}
+ 
   <div class="aib">
     <div class="ail"><div class="aid"></div>AI ANALİTİK GÖRÜŞ</div>
     <div class="ait">${d.ai_insight}</div>
   </div>
  
   <div class="tabs">
-    <div class="tab active" onclick="sw(0)">TEXNİKİ</div>
-    <div class="tab" onclick="sw(1)">FUNDAMENTAL</div>
-    <div class="tab" onclick="sw(2)">SENTIMENT</div>
+    <div class="tab active" onclick="sw(0)">FORECAST</div>
+    <div class="tab" onclick="sw(1)">TEXNİKİ</div>
+    <div class="tab" onclick="sw(2)">FUNDAMENTAL</div>
     <div class="tab" onclick="sw(3)">XÜLASƏ</div>
   </div>
  
+  <!-- FORECAST TAB -->
   <div class="tp active" id="tp0">
+    ${total>0?`<div class="mc" style="margin-bottom:10px;">
+      <div class="mct">Analyst Konsensus (${total} analyst)</div>
+      <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:8px;gap:2px;">
+        ${bullPct>0?`<div style="width:${bullPct}%;background:var(--green);border-radius:3px;"></div>`:''}
+        ${holdPct>0?`<div style="width:${holdPct}%;background:var(--amber);border-radius:3px;"></div>`:''}
+        ${bearPct>0?`<div style="width:${bearPct}%;background:var(--red);border-radius:3px;"></div>`:''}
+      </div>
+      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;">
+        <span style="color:var(--green)">BULLISH ${bullPct}%</span>
+        <span style="color:var(--amber)">HOLD ${holdPct}%</span>
+        <span style="color:var(--red)">BEARISH ${bearPct}%</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px;text-align:center;">
+        <div><div style="font-family:var(--mono);font-size:16px;font-weight:600;color:var(--green)">${f.strong_buy}</div><div style="font-size:10px;color:var(--t2)">Strong Buy</div></div>
+        <div><div style="font-family:var(--mono);font-size:16px;font-weight:600;color:var(--green)">${f.buy}</div><div style="font-size:10px;color:var(--t2)">Buy</div></div>
+        <div><div style="font-family:var(--mono);font-size:16px;font-weight:600;color:var(--amber)">${f.hold}</div><div style="font-size:10px;color:var(--t2)">Hold</div></div>
+        <div><div style="font-family:var(--mono);font-size:16px;font-weight:600;color:var(--red)">${f.sell}</div><div style="font-size:10px;color:var(--t2)">Sell</div></div>
+        <div><div style="font-family:var(--mono);font-size:16px;font-weight:600;color:var(--red)">${f.strong_sell}</div><div style="font-size:10px;color:var(--t2)">Strong Sell</div></div>
+      </div>
+    </div>`:'<div class="mc" style="margin-bottom:10px;"><div class="mct">Analyst Konsensus</div><div style="color:var(--t2);font-size:12px;padding:8px 0;">Bu səhm üçün analyst məlumatı mövcud deyil</div></div>'}
+ 
+    ${f.pt_avg?`<div class="mc">
+      <div class="mct">Price Target (12 Ay)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:8px 0;text-align:center;">
+        <div><div style="font-family:var(--mono);font-size:10px;color:var(--red);margin-bottom:4px;">MİN HƏDƏF</div><div style="font-family:var(--mono);font-size:18px;font-weight:600;color:var(--red)">$${f.pt_low?.toFixed(2)}</div><div style="font-family:var(--mono);font-size:10px;color:var(--t2)">${((f.pt_low/d.current_price-1)*100).toFixed(1)}%</div></div>
+        <div><div style="font-family:var(--mono);font-size:10px;color:var(--amber);margin-bottom:4px;">ORTA HƏDƏF</div><div style="font-family:var(--mono);font-size:18px;font-weight:600;color:var(--amber)">$${f.pt_avg?.toFixed(2)}</div><div style="font-family:var(--mono);font-size:10px;color:${f.pt_upside>0?'var(--green)':'var(--red)'}">${f.pt_upside>0?'+':''}${f.pt_upside}%</div></div>
+        <div><div style="font-family:var(--mono);font-size:10px;color:var(--green);margin-bottom:4px;">MAK HƏDƏF</div><div style="font-family:var(--mono);font-size:18px;font-weight:600;color:var(--green)">$${f.pt_high?.toFixed(2)}</div><div style="font-family:var(--mono);font-size:10px;color:var(--t2)">+${((f.pt_high/d.current_price-1)*100).toFixed(1)}%</div></div>
+      </div>
+    </div>`:''}
+  </div>
+ 
+  <!-- TEXNİKİ TAB -->
+  <div class="tp" id="tp1">
     <div class="g2">
       <div class="mc"><div class="mct">İndikatorlar</div>
         <div class="ibr"><div class="ibh"><span class="ibn">RSI (14)</span><span class="ibv" style="color:${rcl}">${rsi} — ${rlbl}</span></div><div class="ib"><div class="ibf" style="width:${rsi}%;background:${rcl}"></div></div></div>
@@ -540,7 +631,8 @@ function renderAnalysis(ticker, d) {
     </div>
   </div>
  
-  <div class="tp" id="tp1">
+  <!-- FUNDAMENTAL TAB -->
+  <div class="tp" id="tp2">
     <div class="g2">
       <div class="mc"><div class="mct">Qiymətləndirmə</div>
         <div class="mr"><span class="ml">P/E</span><span class="mv">${fmt(d.fundamental.pe_ratio)}</span></div>
@@ -554,20 +646,20 @@ function renderAnalysis(ticker, d) {
         <div class="mr"><span class="ml">ROE</span><span class="mv ${d.fundamental.roe>15?'g':'a'}">${d.fundamental.roe!=null?d.fundamental.roe.toFixed(1)+'%':'—'}</span></div>
       </div>
     </div>
-  </div>
- 
-  <div class="tp" id="tp2">
     <div class="mc"><div class="mct">Son Xəbərlər</div>
       ${(d.sentiment.news||[]).map(n=>`<div class="ni"><div class="ns ${n.sentiment==='positive'?'nsp':n.sentiment==='negative'?'nsn':'nsq'}"></div><div><div class="nt">${n.title}</div><div class="nm">${n.source}</div></div></div>`).join('')}
     </div>
   </div>
  
+  <!-- XÜLASƏ TAB -->
   <div class="tp" id="tp3">
     <div class="mc"><div class="mct">Xülasə</div>
       <div class="mr"><span class="ml">Siqnal</span><span class="mv" style="color:${sc}">${d.signal} (${d.confidence}%)</span></div>
+      <div class="mr"><span class="ml">Qiymət İstiqaməti</span><span class="mv" style="color:${dirColor}">${dirIcon} ${dirText}</span></div>
       <div class="mr"><span class="ml">Real Qiymət</span><span class="mv">$${d.current_price.toFixed(2)}</span></div>
       <div class="mr"><span class="ml">Dəyişim</span><span class="mv ${pp?'g':'r'}">${pp?'+':''}${d.price_change_pct.toFixed(2)}%</span></div>
-      <div class="mr"><span class="ml">Hədəf</span><span class="mv g">$${parseFloat(d.target_price).toFixed(2)}</span></div>
+      ${f.pt_avg?`<div class="mr"><span class="ml">Analyst Hədəfi</span><span class="mv ${f.pt_upside>0?'g':'r'}">$${f.pt_avg.toFixed(2)} (${f.pt_upside>0?'+':''}${f.pt_upside}%)</span></div>`:''}
+      <div class="mr"><span class="ml">AI Hədəfi</span><span class="mv g">$${parseFloat(d.target_price).toFixed(2)}</span></div>
       <div class="mr"><span class="ml">Stop-Loss</span><span class="mv r">$${parseFloat(d.stop_loss).toFixed(2)}</span></div>
       <div class="mr"><span class="ml">P/E</span><span class="mv">${fmt(d.fundamental.pe_ratio)}</span></div>
     </div>
@@ -597,4 +689,4 @@ async function analyzeAll() {
 }
 </script>
 </body>
-</html>
+</ht
