@@ -27,7 +27,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-
+ 
 /* Setup */
 .setup{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 48px);padding:20px;}
 .scard{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:24px;max-width:460px;width:100%;}
@@ -48,13 +48,14 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .sbtn:hover{background:#00eeff;}
 .snote{font-family:var(--mono);font-size:10px;color:var(--t2);margin-top:8px;line-height:1.6;}
 .snote b{color:var(--green);}
-
+ 
 /* Layout */
 .layout{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 48px);}
-@media(max-width:640px){.layout{grid-template-columns:1fr;}}
+@media(max-width:768px){.layout{grid-template-columns:1fr;}}
+@media(max-width:768px){header{padding:0 12px;height:44px;} .hst span:nth-child(4),.hst span:nth-child(5),.hst span:nth-child(6){display:none;} .setup{padding:12px;padding-top:20px;align-items:flex-start;} .scard{padding:16px;} .shdr{flex-direction:column;gap:8px;} .shpr{font-size:18px;} .shtk{font-size:18px;} .shdt{display:none;} .sbn{flex-direction:column;gap:6px;padding:10px 12px;} .bcf{display:flex;align-items:center;gap:8px;} .bcn{font-size:14px;} .g2{grid-template-columns:1fr;} .r3{gap:6px;} .rv{font-size:14px;} .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;} .tab{white-space:nowrap;padding:6px 10px;font-size:9px;} .brs{font-size:11px;} .tinput{font-size:16px;} .ainput{font-size:16px;} main{padding:12px;}}
 aside{background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;
   height:calc(100vh - 48px);position:sticky;top:48px;overflow:hidden;}
-@media(max-width:640px){aside{height:auto;position:relative;border-right:none;border-bottom:1px solid var(--border);}}
+@media(max-width:768px){aside{height:auto;max-height:42vh;position:relative;border-right:none;border-bottom:1px solid var(--border);overflow-y:auto;} .wl{max-height:160px;}}
 .stop{padding:12px;border-bottom:1px solid var(--border);}
 .slbl{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--t2);text-transform:uppercase;margin-bottom:8px;}
 .irow{display:flex;gap:6px;margin-bottom:8px;}
@@ -103,7 +104,7 @@ aside{background:var(--bg1);border-right:1px solid var(--border);display:flex;fl
 .bpt{color:var(--cyan)}.bpc{color:var(--t2);}
 .bpbar{height:2px;background:var(--bg4);border-radius:1px;overflow:hidden;}
 .bpf{height:100%;background:linear-gradient(90deg,var(--cyan),var(--blue));border-radius:1px;transition:width .4s;}
-
+ 
 main{background:var(--bg0);padding:16px;overflow-y:auto;}
 .est{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;color:var(--t2);text-align:center;gap:10px;}
 .eic{font-size:32px;opacity:.2;}
@@ -113,7 +114,7 @@ main{background:var(--bg0);padding:16px;overflow-y:auto;}
 .lsp{width:24px;height:24px;border:2px solid var(--border2);border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px;}
 .ltx{font-family:var(--mono);font-size:11px;color:var(--t2);letter-spacing:.06em;}
 .lstp{font-size:11px;color:var(--t2);margin-top:5px;}
-
+ 
 .ac{animation:fadeUp .3s ease;}
 .shdr{display:flex;align-items:flex-start;justify-content:space-between;background:var(--bg2);
   border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:10px;gap:10px;}
@@ -179,7 +180,7 @@ main{background:var(--bg0);padding:16px;overflow-y:auto;}
 </style>
 </head>
 <body>
-
+ 
 <header>
   <div class="logo">STOCK<span>MIND</span><span style="font-size:10px;margin-left:8px;color:var(--t2)">v5</span></div>
   <div class="hst">
@@ -191,32 +192,32 @@ main{background:var(--bg0);padding:16px;overflow-y:auto;}
     <span id="clk"></span>
   </div>
 </header>
-
+ 
 <!-- Setup -->
 <div id="setupScreen" class="setup">
   <div class="scard">
     <div class="stitle">◈ API AÇARLARI</div>
     <div class="ssub">İki pulsuz açar lazımdır. Bir dəfə daxil edirsiniz — həmişəlik saxlanılır.</div>
-
+ 
     <div class="sblock">
       <div class="sblabel" style="color:var(--cyan)">① FINNHUB — real vaxt qiymət (tam pulsuz)</div>
       <div class="sstep"><span class="snum">1</span><span><a href="https://finnhub.io/register" target="_blank">finnhub.io/register</a> → qeydiyyat</span></div>
       <div class="sstep"><span class="snum">2</span><span>Dashboard → API Key kopyala</span></div>
       <input class="ainput" id="fhKeyIn" type="password" placeholder="d1xxxxxxxxxxxxxxxxxxxxxx" autocomplete="off"/>
     </div>
-
+ 
     <div class="sblock">
       <div class="sblabel" style="color:var(--purple)">② ANTHROPIC — AI analiz ($4.90 kredit var)</div>
       <div class="sstep"><span class="snum">1</span><span><a href="https://console.anthropic.com/settings/api-keys" target="_blank">console.anthropic.com</a> → API Keys</span></div>
       <div class="sstep"><span class="snum">2</span><span>+ Create Key → kopyala (sk-ant-...)</span></div>
       <input class="ainput" id="antKeyIn" type="password" placeholder="sk-ant-xxxxxxxxxxxxxxxxxxxxxx" autocomplete="off"/>
     </div>
-
+ 
     <button class="sbtn" onclick="startApp()">BAŞLA →</button>
     <div class="snote"><b>Təhlükəsiz:</b> Açarlar yalnız bu cihazın yaddaşında saxlanılır · Heç yana göndərilmir</div>
   </div>
 </div>
-
+ 
 <!-- App -->
 <div id="appLayout" class="layout" style="display:none;">
   <aside>
@@ -245,7 +246,7 @@ main{background:var(--bg0);padding:16px;overflow-y:auto;}
     </div>
   </main>
 </div>
-
+ 
 <script>
 // ── Keys ──────────────────────────────────────────────
 let fhKey = localStorage.getItem('sm5_fhk') || '';
@@ -257,7 +258,7 @@ if (!wl.length) wl = [
   {t:'MSFT',n:'Microsoft Corp.',sig:null,price:null,chg:null},
 ];
 let analyses = {}, activeTicker = null;
-
+ 
 // ── Clock ─────────────────────────────────────────────
 const _d = new Date();
 document.getElementById('datestr').textContent =
@@ -266,12 +267,12 @@ setInterval(() => {
   document.getElementById('clk').textContent =
     new Date().toLocaleTimeString('az-AZ',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }, 1000);
-
+ 
 // ── Init ──────────────────────────────────────────────
 if (fhKey && antKey) showApp();
 document.getElementById('fhKeyIn').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('antKeyIn').focus(); });
 document.getElementById('antKeyIn').addEventListener('keydown', e => { if(e.key==='Enter') startApp(); });
-
+ 
 function startApp() {
   const fk = document.getElementById('fhKeyIn').value.trim();
   const ak = document.getElementById('antKeyIn').value.trim();
@@ -282,7 +283,7 @@ function startApp() {
   localStorage.setItem('sm5_antk', ak);
   showApp();
 }
-
+ 
 function showApp() {
   document.getElementById('setupScreen').style.display = 'none';
   document.getElementById('appLayout').style.display = 'grid';
@@ -290,7 +291,7 @@ function showApp() {
   document.getElementById('apistat').textContent = 'AKTİV';
   renderWL();
 }
-
+ 
 function resetKeys() {
   if (!confirm('API açarlarını sıfırlamaq istəyirsiniz?')) return;
   ['sm5_fhk','sm5_antk'].forEach(k => localStorage.removeItem(k));
@@ -299,10 +300,10 @@ function resetKeys() {
   document.getElementById('appLayout').style.display = 'none';
   document.getElementById('apidot').classList.remove('on');
 }
-
+ 
 // ── Watchlist ─────────────────────────────────────────
 function saveWL() { localStorage.setItem('sm5_wl', JSON.stringify(wl)); }
-
+ 
 function renderWL() {
   const el = document.getElementById('wl'); el.innerHTML = '';
   wl.forEach(s => {
@@ -320,7 +321,7 @@ function renderWL() {
   });
   saveWL();
 }
-
+ 
 function addTicker() {
   const i = document.getElementById('ti');
   const t = i.value.toUpperCase().trim().replace(/[^A-Z.]/g,'');
@@ -328,7 +329,7 @@ function addTicker() {
   wl.push({t, n:t, sig:null, price:null, chg:null});
   renderWL(); i.value=''; selT(t);
 }
-
+ 
 function rmT(t, e) {
   e.stopPropagation(); wl = wl.filter(s=>s.t!==t); delete analyses[t];
   if (activeTicker===t) {
@@ -337,10 +338,10 @@ function rmT(t, e) {
   }
   renderWL();
 }
-
+ 
 document.getElementById('ti').addEventListener('keydown', e => { if(e.key==='Enter') addTicker(); });
 function selT(t) { activeTicker=t; renderWL(); analyses[t] ? renderAnalysis(t, analyses[t]) : analyzeStock(t); }
-
+ 
 // ── CSV Import ────────────────────────────────────────
 function importCSV(event) {
   const file = event.target.files[0]; if (!file) return;
@@ -367,19 +368,19 @@ function importCSV(event) {
   };
   reader.readAsText(file);
 }
-
+ 
 // ── API calls (direct from browser) ──────────────────
 async function fhGet(path) {
   const r = await fetch(`https://finnhub.io/api/v1${path}&token=${fhKey}`);
   if (!r.ok) throw new Error(`Finnhub xəta: ${r.status}`);
   return r.json();
 }
-
+ 
 // ── Analyze ───────────────────────────────────────────
 async function analyzeStock(ticker) {
   const main = document.getElementById('main');
   main.innerHTML = `<div class="lst"><div class="lsp"></div><div class="ltx">${ticker} ANALİZ EDİLİR</div><div class="lstp" id="lstp">Real qiymət çəkilir...</div></div>`;
-
+ 
   try {
     // 1. Real data from Finnhub (direct)
     const [quote, prof, met] = await Promise.all([
@@ -387,20 +388,20 @@ async function analyzeStock(ticker) {
       fhGet(`/stock/profile2?symbol=${ticker}`),
       fhGet(`/stock/metric?symbol=${ticker}&metric=all`)
     ]);
-
+ 
     if (!quote.c || quote.c === 0) throw new Error(`"${ticker}" tapılmadı`);
-
+ 
     const el = document.getElementById('lstp');
     if (el) el.textContent = 'AI analiz aparır...';
-
+ 
     const cp = quote.c, chgPct = quote.dp;
     const compName = prof.name || ticker;
     const sector = prof.finnhubIndustry || 'Naməlum';
     const m = met.metric || {};
-
+ 
     // 2. AI via Anthropic (direct)
     const prompt = `Tarix: ${new Date().toLocaleDateString('az-AZ')}. ${ticker} (${compName}, ${sector}).
-
+ 
 REAL DATA (Finnhub):
 - Qiymət: $${cp.toFixed(2)} (${chgPct>=0?'+':''}${chgPct.toFixed(2)}%)
 - Gün: Yüksək $${quote.h?.toFixed(2)||'—'} / Aşağı $${quote.l?.toFixed(2)||'—'}
@@ -411,10 +412,10 @@ ${m['totalDebt/totalEquityAnnual']?`- Borc/Kapital: ${m['totalDebt/totalEquityAn
 ${m.revenueGrowthTTMYoy?`- Gəlir artımı: ${m.revenueGrowthTTMYoy.toFixed(1)}%`:''}
 ${m.netProfitMarginTTM?`- Mənfəət marjası: ${m.netProfitMarginTTM.toFixed(1)}%`:''}
 ${m.roeTTM?`- ROE: ${m.roeTTM.toFixed(1)}%`:''}
-
+ 
 YALNIZ JSON cavab ver:
 {"signal":"BUY","confidence":74,"signal_reasoning":"2-3 cümlə Azərbaycanca","macd_signal":"Bullish","trend":"Yüksəliş","volume_trend":"Artır","rsi_estimate":55,"sentiment":{"score":65,"news":[{"title":"xəbər","sentiment":"positive","source":"Bloomberg"},{"title":"xəbər","sentiment":"neutral","source":"Reuters"},{"title":"xəbər","sentiment":"negative","source":"CNBC"}]},"ai_insight":"3-4 cümlə Azərbaycanca. Real $${cp.toFixed(2)} əsasında.","assessment":"Ədalətli qiymət","stop_loss":${(cp*0.92).toFixed(2)},"target_price":${(cp*1.13).toFixed(2)}}`;
-
+ 
     const ar = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -429,14 +430,14 @@ YALNIZ JSON cavab ver:
         messages: [{ role: 'user', content: prompt }]
       })
     });
-
+ 
     const ad = await ar.json();
     if (ad.error) throw new Error(ad.error.message || 'AI xətası');
     const at = (ad.content||[]).map(b=>b.text||'').join('');
     const match = at.match(/\{[\s\S]*\}/);
     if (!match) throw new Error('AI cavabı alınmadı');
     const ai = JSON.parse(match[0]);
-
+ 
     const result = {
       ticker, company_name:compName, sector,
       current_price:cp, price_change_pct:chgPct,
@@ -457,20 +458,20 @@ YALNIZ JSON cavab ver:
       stop_loss:ai.stop_loss,
       target_price:ai.target_price
     };
-
+ 
     analyses[ticker] = result;
     const item = wl.find(s=>s.t===ticker);
     if (item) { item.sig=result.signal; item.n=compName; item.price=cp.toFixed(2); item.chg=chgPct; }
     renderWL();
     if (activeTicker===ticker) renderAnalysis(ticker, result);
-
+ 
   } catch(err) {
     if (activeTicker===ticker)
       document.getElementById('main').innerHTML =
         `<div class="erb">⚠ Xəta: ${err.message}<br><button class="reb" onclick="analyzeStock('${ticker}')">YENİDƏN CƏHD ET</button></div>`;
   }
 }
-
+ 
 // ── Render ────────────────────────────────────────────
 function renderAnalysis(ticker, d) {
   const pp = d.price_change_pct >= 0;
@@ -480,7 +481,7 @@ function renderAnalysis(ticker, d) {
   const rlbl = rsi>70?'Həddindən artıq alınmış':rsi<30?'Həddindən artıq satılmış':'Neytral';
   const scl = d.sentiment.score>60?'var(--green)':d.sentiment.score<40?'var(--red)':'var(--amber)';
   const fmt = v => v!=null ? v.toFixed(1) : '—';
-
+ 
   document.getElementById('main').innerHTML = `<div class="ac">
   <div class="shdr">
     <div>
@@ -494,7 +495,7 @@ function renderAnalysis(ticker, d) {
       <div class="shdt">${new Date().toLocaleDateString('az-AZ',{day:'numeric',month:'long',year:'numeric'})}</div>
     </div>
   </div>
-
+ 
   <div class="sbn b${d.signal}">
     <div class="bl">
       <div class="bsg" style="color:${sc}">${d.signal}</div>
@@ -502,19 +503,19 @@ function renderAnalysis(ticker, d) {
     </div>
     <div class="bcf"><span class="bcn" style="color:${sc}">${d.confidence}%</span>Etibar</div>
   </div>
-
+ 
   <div class="aib">
     <div class="ail"><div class="aid"></div>AI ANALİTİK GÖRÜŞ</div>
     <div class="ait">${d.ai_insight}</div>
   </div>
-
+ 
   <div class="tabs">
     <div class="tab active" onclick="sw(0)">TEXNİKİ</div>
     <div class="tab" onclick="sw(1)">FUNDAMENTAL</div>
     <div class="tab" onclick="sw(2)">SENTIMENT</div>
     <div class="tab" onclick="sw(3)">XÜLASƏ</div>
   </div>
-
+ 
   <div class="tp active" id="tp0">
     <div class="g2">
       <div class="mc"><div class="mct">İndikatorlar</div>
@@ -538,7 +539,7 @@ function renderAnalysis(ticker, d) {
       </div>
     </div>
   </div>
-
+ 
   <div class="tp" id="tp1">
     <div class="g2">
       <div class="mc"><div class="mct">Qiymətləndirmə</div>
@@ -554,13 +555,13 @@ function renderAnalysis(ticker, d) {
       </div>
     </div>
   </div>
-
+ 
   <div class="tp" id="tp2">
     <div class="mc"><div class="mct">Son Xəbərlər</div>
       ${(d.sentiment.news||[]).map(n=>`<div class="ni"><div class="ns ${n.sentiment==='positive'?'nsp':n.sentiment==='negative'?'nsn':'nsq'}"></div><div><div class="nt">${n.title}</div><div class="nm">${n.source}</div></div></div>`).join('')}
     </div>
   </div>
-
+ 
   <div class="tp" id="tp3">
     <div class="mc"><div class="mct">Xülasə</div>
       <div class="mr"><span class="ml">Siqnal</span><span class="mv" style="color:${sc}">${d.signal} (${d.confidence}%)</span></div>
@@ -574,12 +575,12 @@ function renderAnalysis(ticker, d) {
   </div>
   </div>`;
 }
-
+ 
 function sw(idx) {
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
   document.querySelectorAll('.tp').forEach((p,i)=>p.classList.toggle('active',i===idx));
 }
-
+ 
 async function analyzeAll() {
   const btn = document.getElementById('aab'); btn.disabled = true;
   const prog = document.getElementById('bprog'); prog.style.display = 'block';
