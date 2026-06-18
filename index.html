@@ -386,8 +386,7 @@ async function analyzeStock(ticker) {
     if (!quote.c || quote.c === 0) throw new Error(`"${ticker}" tapılmadı`);
  
     // Analyst price target
-    let priceTarget = null;
-    try { priceTarget = await fhGet(`/stock/price-target?symbol=${ticker}`); } catch(e){}
+    const priceTarget = await Promise.resolve(null);
  
     const el = document.getElementById('lstp');
     if (el) el.textContent = 'AI professional trader analizi...';
@@ -439,7 +438,7 @@ YALNIZ JSON cavab ver (başqa heç nə yazma):
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1500,
+        max_tokens: 2000,
         messages: [{ role: 'user', content: prompt }]
       })
     });
