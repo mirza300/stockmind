@@ -779,10 +779,11 @@ function renderAnalysis(ticker, d) {
     <button onclick="analyzeStock('${ticker}')" style="margin-top:8px;background:var(--bg3);border:1px solid var(--border2);color:var(--cyan);padding:6px 14px;border-radius:4px;cursor:pointer;font-family:var(--mono);font-size:10px;">↻ YENİLƏ</button>
   </div>
   </div>`;
-}
+
  if (d.candles && d.candles.length) {
     setTimeout(() => drawCandles('candleChart', d.candles), 60);
-  }
+  } 
+}
 function sw(idx) {
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
   document.querySelectorAll('.tp').forEach((p,i)=>p.classList.toggle('active',i===idx));
