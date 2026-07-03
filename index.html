@@ -206,7 +206,7 @@ main{background:var(--bg0);padding:16px;overflow-y:auto;}
     </div>
  
     <div class="sblock">
-      <div class="sblabel" style="color:var(--purple)">② ANTHROPIC — AI analiz ($4.90 kredit var)</div>
+      <div class="sblabel" style="color:var(--purple)">② ANTHROPIC — AI analiz</div>
       <div class="sstep"><span class="snum">1</span><span><a href="https://console.anthropic.com/settings/api-keys" target="_blank">console.anthropic.com</a> → API Keys</span></div>
       <div class="sstep"><span class="snum">2</span><span>+ Create Key → kopyala (sk-ant-...)</span></div>
       <input class="ainput" id="antKeyIn" type="password" placeholder="sk-ant-xxxxxxxxxxxxxxxxxxxxxx" autocomplete="off"/>
@@ -552,7 +552,7 @@ YALNIZ JSON cavab ver (başqa heç nə yazma):
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-8',
         max_tokens: 1200,
         messages: [{ role: 'user', content: prompt }]
       })
