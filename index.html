@@ -211,7 +211,11 @@ main{background:var(--bg0);padding:16px;overflow-y:auto;}
       <div class="sstep"><span class="snum">2</span><span>+ Create Key → kopyala (sk-ant-...)</span></div>
       <input class="ainput" id="antKeyIn" type="password" placeholder="sk-ant-xxxxxxxxxxxxxxxxxxxxxx" autocomplete="off"/>
     </div>
- 
+ <div class="sblock">
+  <div class="sblabel" style="color:var(--amber)">③ ALPHA VANTAGE — şam qrafiki (pulsuz)</div>
+  <div class="sstep"><span class="snum">✓</span><span>Açarınız hazırdır — aşağıya yapışdırın</span></div>
+  <input class="ainput" id="avKeyIn" type="password" placeholder="T8F0YC045M1HR426" autocomplete="off"/>
+</div>
     <button class="sbtn" onclick="startApp()">BAŞLA →</button>
     <div class="snote"><b>Təhlükəsiz:</b> Açarlar yalnız bu cihazın yaddaşında saxlanılır · Heç yana göndərilmir</div>
   </div>
@@ -245,6 +249,7 @@ main{background:var(--bg0);padding:16px;overflow-y:auto;}
 // ── Keys ──────────────────────────────────────────────
 let fhKey = localStorage.getItem('sm5_fhk') || '';
 let antKey = localStorage.getItem('sm5_antk') || '';
+let avKey = localStorage.getItem('sm5_avk') || '';
 let wl = JSON.parse(localStorage.getItem('sm5_wl') || '[]');
 if (!wl.length) wl = [
   {t:'AAPL',n:'Apple Inc.',sig:null,price:null,chg:null},
@@ -263,18 +268,22 @@ setInterval(() => {
 }, 1000);
  
 // ── Init ──────────────────────────────────────────────
-if (fhKey && antKey) showApp();
+avKey = localStorage.getItem('sm5_avk') || '';
+if (fhKey && antKey && avKey) showApp();
 document.getElementById('fhKeyIn').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('antKeyIn').focus(); });
 document.getElementById('antKeyIn').addEventListener('keydown', e => { if(e.key==='Enter') startApp(); });
  
 function startApp() {
   const fk = document.getElementById('fhKeyIn').value.trim();
   const ak = document.getElementById('antKeyIn').value.trim();
+  const vk = document.getElementById('avKeyIn').value.trim();
   if (!fk || fk.length < 8) { alert('Finnhub açarını daxil edin'); return; }
   if (!ak || ak.length < 10) { alert('Anthropic açarını daxil edin'); return; }
-  fhKey = fk; antKey = ak;
+  if (!vk || vk.length < 8) { alert('Alpha Vantage açarını daxil edin'); return; }
+  fhKey = fk; antKey = ak; avKey = vk;
   localStorage.setItem('sm5_fhk', fk);
   localStorage.setItem('sm5_antk', ak);
+  localStorage.setItem('sm5_avk', vk);
   showApp();
 }
  
@@ -288,8 +297,8 @@ function showApp() {
  
 function resetKeys() {
   if (!confirm('API açarlarını sıfırlamaq istəyirsiniz?')) return;
-  ['sm5_fhk','sm5_antk'].forEach(k => localStorage.removeItem(k));
-  fhKey = ''; antKey = '';
+  ['sm5_fhk','sm5_antk','sm5_avk'].forEach(k => localStorage.removeItem(k));
+  fhKey = ''; antKey = ''; avKey = '';
   document.getElementById('setupScreen').style.display = 'flex';
   document.getElementById('appLayout').style.display = 'none';
   document.getElementById('apidot').classList.remove('on');
@@ -369,25 +378,127 @@ async function fhGet(path) {
   if (!r.ok) throw new Error(`Finnhub xəta: ${r.status}`);
   return r.json();
 }
- 
+// ── Candle data from Alpha Vantage ────────────────────
+async function getCandles(ticker) {
+  try {
+    const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${ticker}&outputsize=compact&apikey=${avKey}`;
+    const r = await fetch(url);
+    const data = await r.json();
+    const ts = data['Time Series (Daily)'];
+    if (!ts) return [];
+    return Object.entries(ts).slice(0, 90).reverse().map(([date, d]) => ({
+      d: date,
+      o: +d['1. open'], h: +d['2. high'],
+      l: +d['3. low'],  c: +d['4. close'],
+      v: +d['5. volume']
+    }));
+  } catch(e) { return []; }
+}
+
+function calcRSI(candles, period=14) {
+  if (candles.length < period+1) return 50;
+  let gains=0, losses=0;
+  for (let i=candles.length-period; i<candles.length; i++) {
+    const diff = candles[i].c - candles[i-1].c;
+    if (diff>0) gains+=diff; else losses+=Math.abs(diff);
+  }
+  const ag=gains/period, al=losses/period;
+  return al===0 ? 100 : Math.round(100-(100/(1+ag/al)));
+}
+
+function calcSMA(candles, period) {
+  if (candles.length < period) return null;
+  return candles.slice(-period).reduce((s,c)=>s+c.c,0)/period;
+}
+
+function drawCandles(canvasId, candles) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || !candles.length) return;
+  const dpr = window.devicePixelRatio||1;
+  const W = canvas.offsetWidth||700, H = 200;
+  canvas.width=W*dpr; canvas.height=H*dpr; canvas.style.height=H+'px';
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr,dpr);
+  const P={t:16,r:60,b:28,l:4}, cw=W-P.l-P.r, ch=H-P.t-P.b;
+  const prices = candles.flatMap(c=>[c.h,c.l]);
+  let mn=Math.min(...prices), mx=Math.max(...prices);
+  const pad=(mx-mn)*0.08; mn-=pad; mx+=pad;
+  const ys=v=>P.t+ch*(1-(v-mn)/(mx-mn));
+  const n=candles.length, bw=Math.max(2,Math.floor(cw/n*0.6));
+  const xp=i=>P.l+cw*(i+0.5)/n;
+
+  // Grid
+  for(let i=0;i<=4;i++){
+    const y=P.t+ch*i/4;
+    ctx.strokeStyle='rgba(31,45,61,0.7)'; ctx.lineWidth=0.5;
+    ctx.beginPath(); ctx.moveTo(P.l,y); ctx.lineTo(W-P.r,y); ctx.stroke();
+    ctx.fillStyle='rgba(90,122,150,0.7)'; ctx.font='9px IBM Plex Mono,monospace'; ctx.textAlign='right';
+    ctx.fillText('$'+(mx-(mx-mn)*i/4).toFixed(1),W-2,y+3);
+  }
+
+  // SMA20
+  if(candles.length>=20){
+    ctx.beginPath(); ctx.strokeStyle='rgba(74,158,255,0.6)'; ctx.lineWidth=1.2;
+    for(let i=19;i<candles.length;i++){
+      const sma=candles.slice(i-19,i+1).reduce((s,c)=>s+c.c,0)/20;
+      i===19?ctx.moveTo(xp(i),ys(sma)):ctx.lineTo(xp(i),ys(sma));
+    }
+    ctx.stroke();
+  }
+
+  // Candles
+  candles.forEach((c,i)=>{
+    const x=xp(i), bull=c.c>=c.o;
+    ctx.strokeStyle=bull?'rgba(0,210,106,0.7)':'rgba(255,77,106,0.7)';
+    ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x,ys(c.h)); ctx.lineTo(x,ys(c.l)); ctx.stroke();
+    const oy=ys(Math.max(c.o,c.c)), bh=Math.max(1.5,Math.abs(ys(c.o)-ys(c.c)));
+    ctx.fillStyle=bull?'rgba(0,210,106,0.75)':'rgba(255,77,106,0.75)';
+    ctx.fillRect(x-bw/2,oy,bw,bh);
+  });
+
+  // Last price line
+  const last=candles[candles.length-1], y=ys(last.c);
+  ctx.strokeStyle='rgba(245,166,35,0.5)'; ctx.lineWidth=1; ctx.setLineDash([3,4]);
+  ctx.beginPath(); ctx.moveTo(P.l,y); ctx.lineTo(W-P.r,y); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle='#f5a623'; ctx.font='bold 9px IBM Plex Mono,monospace'; ctx.textAlign='right';
+  ctx.fillText('$'+last.c.toFixed(2),W-2,y-3);
+
+  // X labels
+  const step=Math.max(1,Math.floor(n/6));
+  ctx.fillStyle='rgba(90,122,150,0.6)'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  for(let i=0;i<n;i+=step){
+    const dd=new Date(candles[i].d);
+    ctx.fillText(`${dd.getDate().toString().padStart(2,'0')}.${(dd.getMonth()+1).toString().padStart(2,'0')}`,xp(i),H-4);
+  }
+}
+  
 // ── Analyze ───────────────────────────────────────────
 async function analyzeStock(ticker) {
   const main = document.getElementById('main');
   main.innerHTML = `<div class="lst"><div class="lsp"></div><div class="ltx">${ticker} ANALİZ EDİLİR</div><div class="lstp" id="lstp">Real qiymət çəkilir...</div></div>`;
  
   try {
-    const [quote, prof, met, rec] = await Promise.all([
+    const [[quote, prof, met, rec], candles] = await Promise.all([
+  Promise.all([
       fhGet(`/quote?symbol=${ticker}`),
       fhGet(`/stock/profile2?symbol=${ticker}`),
       fhGet(`/stock/metric?symbol=${ticker}&metric=all`),
       fhGet(`/stock/recommendation?symbol=${ticker}`).catch(()=>([]))
-    ]);
- 
+    ]),
+  getCandles(ticker)
+]);
     if (!quote.c || quote.c === 0) throw new Error(`"${ticker}" tapılmadı`);
  
     // Analyst price target
     const priceTarget = await Promise.resolve(null);
- 
+    const realRSI = candles.length >= 15 ? calcRSI(candles) : null;
+    const sma50 = calcSMA(candles, 50);
+    const sma200 = calcSMA(candles, 200);
+    const sma50Above = sma50 ? quote.c > sma50 : null;
+    const sma200Above = sma200 ? quote.c > sma200 : null;
+    const recent30 = candles.slice(-30);
+    const support = recent30.length ? Math.min(...recent30.map(c=>c.l)).toFixed(2) : null;
+    const resistance = recent30.length ? Math.max(...recent30.map(c=>c.h)).toFixed(2) : null;
     const el = document.getElementById('lstp');
     if (el) el.textContent = 'AI professional trader analizi...';
  
@@ -415,6 +526,10 @@ REAL BAZAR DATA (${new Date().toLocaleDateString('az-AZ')}):
 ━ Əvvəlki bağlanış: $${quote.pc?.toFixed(2)}
 ${ptAvg?`━ Analyst price target: Orta $${ptAvg.toFixed(2)} | Yüksək $${ptHigh?.toFixed(2)} | Aşağı $${ptLow?.toFixed(2)} (${ptUpside>0?'+':''}${ptUpside}% potensial)`:''}
 ${totalAnalysts>0?`━ Analyst konsensus: ${bullishAnalysts} bullish / ${totalAnalysts} cəmi (${latestRec.strongBuy} strong buy, ${latestRec.buy} buy, ${latestRec.hold} hold, ${latestRec.sell} sell, ${latestRec.strongSell} strong sell)`:''}
+${realRSI?`━ RSI (14): ${realRSI} — ${realRSI>70?'Həddindən artıq alınmış':realRSI<30?'Həddindən artıq satılmış':'Neytral'}`:''}
+${sma50Above!==null?`━ SMA50: Qiymət ${sma50Above?'üstündə (bullish)':'altında (bearish)'} ($${sma50?.toFixed(2)})`:''}
+${sma200Above!==null?`━ SMA200: Qiymət ${sma200Above?'üstündə (bullish)':'altında (bearish)'} ($${sma200?.toFixed(2)})`:''}
+${support?`━ Dəstək: $${support} | Müqavimət: $${resistance}`:''}
 ${m.peNormalizedAnnual?`━ P/E: ${m.peNormalizedAnnual.toFixed(1)}`:''}${m.pbAnnual?` | P/B: ${m.pbAnnual.toFixed(1)}`:''}
 ${m.revenueGrowthTTMYoy?`━ Gəlir artımı: ${m.revenueGrowthTTMYoy.toFixed(1)}%`:''}${m.netProfitMarginTTM?` | Mənfəət marjası: ${m.netProfitMarginTTM.toFixed(1)}%`:''}${m.roeTTM?` | ROE: ${m.roeTTM.toFixed(1)}%`:''}
 ${m['totalDebt/totalEquityAnnual']?`━ Borc/Kapital: ${m['totalDebt/totalEquityAnnual'].toFixed(1)}`:''}
@@ -426,7 +541,7 @@ Professional trader kimi düşün:
 4. Əsas risk faktorları nələrdir?
  
 YALNIZ JSON cavab ver (başqa heç nə yazma):
-{"signal":"BUY","confidence":REAL_CONFIDENCE_1_100,"signal_reasoning:"Professional trader perspektivindən 1-2 cümlə. Risk/reward, katalizator və ya risk haqqında konkret məlumat.","trader_note":"Bu sehmi portfolio-ya əlavə etmək üçün ideal giriş nöqtəsi və ya gözləmə strategiyası. 1-2 cümlə konkret tövsiyə.","macd_signal":"Bullish","trend":"Yüksəliş","volume_trend":"Artır","rsi_estimate":55,"price_direction":"UP","direction_reasoning":"Analitiklərin proqnozu və texniki göstəricilər əsasında qiymətin istiqamətini izah et.","sentiment":{"score":65,"news":[{"title":"real 2026 xəbər başlığı","sentiment":"positive","source":"Bloomberg"},{"title":"xəbər","sentiment":"neutral","source":"Reuters"},{"title":"xəbər","sentiment":"negative","source":"CNBC"}]},"ai_insight":"2 cümlə Azərbaycanca. Real data, analyst konsensus, 2026 makro mühiti, konkret risk faktorları.","assessment":"Ədalətli qiymət","stop_loss":${(cp*0.92).toFixed(2)},"target_price":${ptAvg?ptAvg.toFixed(2):(cp*1.13).toFixed(2)}}`;
+{"signal":"BUY","confidence":REAL_CONFIDENCE_1_100,"signal_reasoning:"Professional trader perspektivindən 1-2 cümlə. Risk/reward, katalizator və ya risk haqqında konkret məlumat.","trader_note":"Bu sehmi portfolio-ya əlavə etmək üçün ideal giriş nöqtəsi və ya gözləmə strategiyası. 1-2 cümlə konkret tövsiyə.","macd_signal":"Bullish","trend":"Yüksəliş","volume_trend":"Artır","rsi_estimate":${realRSI||55},"price_direction":"UP","direction_reasoning":"Analitiklərin proqnozu və texniki göstəricilər əsasında qiymətin istiqamətini izah et.","sentiment":{"score":65,"news":[{"title":"real 2026 xəbər başlığı","sentiment":"positive","source":"Bloomberg"},{"title":"xəbər","sentiment":"neutral","source":"Reuters"},{"title":"xəbər","sentiment":"negative","source":"CNBC"}]},"ai_insight":"2 cümlə Azərbaycanca. Real data, analyst konsensus, 2026 makro mühiti, konkret risk faktorları.","assessment":"Ədalətli qiymət","stop_loss":${(cp*0.92).toFixed(2)},"target_price":${ptAvg?ptAvg.toFixed(2):(cp*1.13).toFixed(2)}}`;
  
     const ar = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -477,8 +592,9 @@ YALNIZ JSON cavab ver (başqa heç nə yazma):
       technical:{rsi:ai.rsi_estimate||50, macd:ai.macd_signal||'Neytral', trend:ai.trend||'Neytral', volume:ai.volume_trend||'Sabit'},
       sentiment:ai.sentiment,
       ai_insight:ai.ai_insight,
-      stop_loss:ai.stop_loss,
-      target_price:ai.target_price
+     stop_loss:ai.stop_loss,
+      target_price:ai.target_price,
+      candles: candles
     };
  
     analyses[ticker] = result;
@@ -553,7 +669,11 @@ function renderAnalysis(ticker, d) {
  
   ${d.trader_note?`<div style="background:rgba(74,158,255,.06);border:1px solid rgba(74,158,255,.2);border-radius:6px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:var(--t1);line-height:1.6;">
     <span style="font-family:var(--mono);font-size:9px;color:var(--blue);letter-spacing:.08em;">💼 TRADER TÖVSIYƏSI &nbsp;</span>${d.trader_note}</div>`:''}
- 
+ ${d.candles&&d.candles.length?`
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:10px;">
+    <div style="font-family:var(--mono);font-size:10px;color:var(--t2);letter-spacing:.08em;margin-bottom:8px;">ŞAM QRAFİKİ · SMA20 <span style="color:var(--green);font-size:9px">● REAL DATA</span></div>
+    <canvas id="candleChart" style="width:100%;display:block;"></canvas>
+  </div>`:''}
   <div class="aib">
     <div class="ail"><div class="aid"></div>AI ANALİTİK GÖRÜŞ</div>
     <div class="ait">${d.ai_insight}</div>
@@ -660,7 +780,9 @@ function renderAnalysis(ticker, d) {
   </div>
   </div>`;
 }
- 
+ if (d.candles && d.candles.length) {
+    setTimeout(() => drawCandles('candleChart', d.candles), 60);
+  }
 function sw(idx) {
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
   document.querySelectorAll('.tp').forEach((p,i)=>p.classList.toggle('active',i===idx));
