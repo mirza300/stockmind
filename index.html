@@ -597,7 +597,7 @@ YALNIZ JSON cavab ver:
       body: JSON.stringify({
         model: 'claude-opus-4-8',
         max_tokens: 1200,
-        temperature: 0,
+        messages: [{ role: 'user', content: prompt }]
         messages: [{ role: 'user', content: prompt }]
       })
     });
