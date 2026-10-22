@@ -427,7 +427,8 @@ function calcMACD(candles){
 function calcVolumeTrend(candles){
   if(candles.length<30) return null;
   const avg=a=>a.reduce((s,c)=>s+c.v,0)/a.length;
-  return (avg(candles.slice(-5))/avg(candles.slice(-30))-1)*100;
+  const withVol = candles.filter(c=>c.v>0);
+  return (avg(withVol.slice(-5))/avg(withVol.slice(-30))-1)*100;
 }
   
 function calcSMA(candles, period) {
@@ -514,6 +515,10 @@ async function analyzeStock(ticker) {
   getCandles(ticker)
 ]);
     if (!quote.c || quote.c === 0) throw new Error(`"${ticker}" tapılmadı`);
+    const today = new Date().toISOString().split('T')[0];
+    if (candles.length && candles[candles.length-1].d < today) {
+    candles.push({d: today, o: quote.o, h: quote.h, l: quote.l, c: quote.c, v: 0});
+    }
  
     // Analyst price target
     const priceTarget = await Promise.resolve(null);
