@@ -50,8 +50,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .snote b{color:var(--green);}
  
 /* Layout */
-.layout{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 48px);}
-@media(max-width:768px){.layout{grid-template-columns:1fr;grid-template-rows:auto 1fr;}}
+.layout{display:grid;grid-late-columns:280px 1fr;min-height:calc(100vh - 48px);}
+@media(max-width:768px){.layout{grid-late-columns:1fr;grid-late-rows:auto 1fr;}}
 @media(max-width:768px){header{padding:0 12px;} .hst span:nth-child(4),.hst span:nth-child(5),.hst span:nth-child(6){display:none;} .setup{padding:12px;padding-top:20px;align-items:flex-start;} .scard{padding:16px;} .shdr{flex-direction:column;gap:8px;} .shpr{font-size:18px;} .shtk{font-size:18px;} .shdt{display:none;} .sbn{flex-direction:column;gap:6px;padding:10px 12px;} .bcf{display:flex;align-items:center;gap:8px;} .bcn{font-size:14px;} .g2{grid-template-columns:1fr;} .r3{gap:6px;} .rv{font-size:14px;} .tabs{overflow-x:auto;} .tab{white-space:nowrap;padding:6px 10px;font-size:9px;} .tinput{font-size:16px;} .ainput{font-size:16px;} main{padding:12px;}}
 aside{background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;height:calc(100vh - 48px);position:sticky;top:48px;overflow:hidden;}
 @media(max-width:768px){aside{height:auto;max-height:260px;position:static;border-right:none;border-bottom:1px solid var(--border);} .wl{max-height:120px;}}
@@ -598,8 +598,7 @@ YALNIZ JSON cavab ver:
         model: 'claude-opus-4-8',
         max_tokens: 1200,
         messages: [{ role: 'user', content: prompt }]
-        messages: [{ role: 'user', content: prompt }]
-      })
+          })
     });
  
     const ad = await ar.json();
