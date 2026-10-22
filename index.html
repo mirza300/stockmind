@@ -406,6 +406,30 @@ function calcRSI(candles, period=14) {
   return al===0 ? 100 : Math.round(100-(100/(1+ag/al)));
 }
 
+function daysAgo(n){ const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().split('T')[0]; }
+
+function calcEMA(values, period){
+  const k=2/(period+1); let ema=values[0]; const out=[ema];
+  for(let i=1;i<values.length;i++){ ema=values[i]*k+ema*(1-k); out.push(ema); }
+  return out;
+}
+
+function calcMACD(candles){
+  if(candles.length<35) return null;
+  const closes=candles.map(c=>c.c);
+  const e12=calcEMA(closes,12), e26=calcEMA(closes,26);
+  const line=e12.map((v,i)=>v-e26[i]);
+  const sig=calcEMA(line.slice(25),9);
+  const macd=line[line.length-1], signal=sig[sig.length-1];
+  return {macd, signal, bullish: macd>signal};
+}
+
+function calcVolumeTrend(candles){
+  if(candles.length<30) return null;
+  const avg=a=>a.reduce((s,c)=>s+c.v,0)/a.length;
+  return (avg(candles.slice(-5))/avg(candles.slice(-30))-1)*100;
+}
+  
 function calcSMA(candles, period) {
   if (candles.length < period) return null;
   return candles.slice(-period).reduce((s,c)=>s+c.c,0)/period;
@@ -478,12 +502,14 @@ async function analyzeStock(ticker) {
   main.innerHTML = `<div class="lst"><div class="lsp"></div><div class="ltx">${ticker} ANALİZ EDİLİR</div><div class="lstp" id="lstp">Real qiymət çəkilir...</div></div>`;
  
   try {
-    const [[quote, prof, met, rec], candles] = await Promise.all([
+    const [[quote, prof, met, rec, news, earn], candles] = await Promise.all([
   Promise.all([
       fhGet(`/quote?symbol=${ticker}`),
       fhGet(`/stock/profile2?symbol=${ticker}`),
       fhGet(`/stock/metric?symbol=${ticker}&metric=all`),
-      fhGet(`/stock/recommendation?symbol=${ticker}`).catch(()=>([]))
+      fhGet(`/stock/recommendation?symbol=${ticker}`).catch(()=>([])),
+      fhGet(`/company-news?symbol=${ticker}&from=${daysAgo(7)}&to=${daysAgo(0)}`).catch(()=>([])),
+      fhGet(`/stock/earnings?symbol=${ticker}`).catch(()=>([]))
     ]),
   getCandles(ticker)
 ]);
@@ -499,6 +525,12 @@ async function analyzeStock(ticker) {
     const recent30 = candles.slice(-30);
     const support = recent30.length ? Math.min(...recent30.map(c=>c.l)).toFixed(2) : null;
     const resistance = recent30.length ? Math.max(...recent30.map(c=>c.h)).toFixed(2) : null;
+    const macd = calcMACD(candles);
+    const volChg = calcVolumeTrend(candles);
+    const sma20 = calcSMA(candles, 20);
+    const perf30 = candles.length>=22 ? (quote.c/candles[candles.length-22].c-1)*100 : null;
+    const newsList = (Array.isArray(news)?news:[]).slice(0,6);
+    const lastEarn = (Array.isArray(earn)?earn:[]).slice(0,4);
     const el = document.getElementById('lstp');
     if (el) el.textContent = 'AI professional trader analizi...';
  
@@ -534,14 +566,25 @@ ${m.peNormalizedAnnual?`━ P/E: ${m.peNormalizedAnnual.toFixed(1)}`:''}${m.pbAn
 ${m.revenueGrowthTTMYoy?`━ Gəlir artımı: ${m.revenueGrowthTTMYoy.toFixed(1)}%`:''}${m.netProfitMarginTTM?` | Mənfəət marjası: ${m.netProfitMarginTTM.toFixed(1)}%`:''}${m.roeTTM?` | ROE: ${m.roeTTM.toFixed(1)}%`:''}
 ${m['totalDebt/totalEquityAnnual']?`━ Borc/Kapital: ${m['totalDebt/totalEquityAnnual'].toFixed(1)}`:''}
  
-Professional trader kimi düşün:
-1. Risk/Reward nisbəti nədir?
-2. Analyst konsensus bazarın görüşünü necə əks etdirir?
-3. Qiymət hədəfinə çatmaq üçün katalizator nədir?
-4. Əsas risk faktorları nələrdir?
- 
-YALNIZ JSON cavab ver (başqa heç nə yazma):
-{"signal":"BUY","confidence":REAL_CONFIDENCE_1_100,"signal_reasoning:"Professional trader perspektivindən 1-2 cümlə. Risk/reward, katalizator və ya risk haqqında konkret məlumat.","trader_note":"Bu sehmi portfolio-ya əlavə etmək üçün ideal giriş nöqtəsi və ya gözləmə strategiyası. 1-2 cümlə konkret tövsiyə.","macd_signal":"Bullish","trend":"Yüksəliş","volume_trend":"Artır","rsi_estimate":${realRSI||55},"price_direction":"UP","direction_reasoning":"Analitiklərin proqnozu və texniki göstəricilər əsasında qiymətin istiqamətini izah et.","sentiment":{"score":65,"news":[{"title":"real 2026 xəbər başlığı","sentiment":"positive","source":"Bloomberg"},{"title":"xəbər","sentiment":"neutral","source":"Reuters"},{"title":"xəbər","sentiment":"negative","source":"CNBC"}]},"ai_insight":"2 cümlə Azərbaycanca. Real data, analyst konsensus, 2026 makro mühiti, konkret risk faktorları.","assessment":"Ədalətli qiymət","stop_loss":${(cp*0.92).toFixed(2)},"target_price":${ptAvg?ptAvg.toFixed(2):(cp*1.13).toFixed(2)}}`;
+${macd?`━ MACD (12,26,9): ${macd.macd.toFixed(2)} / siqnal ${macd.signal.toFixed(2)} → ${macd.bullish?'Bullish':'Bearish'}`:''}
+${sma20?`━ SMA20: $${sma20.toFixed(2)} (qiymət ${quote.c>sma20?'üstündə':'altında'})`:''}
+${volChg!==null?`━ Həcm: son 5 gün 30 günlük ortalamadan ${volChg>=0?'+':''}${volChg.toFixed(0)}%`:''}
+${perf30!==null?`━ Son 1 ay performans: ${perf30>=0?'+':''}${perf30.toFixed(1)}%`:''}
+${lastEarn.length?`━ Son rüblər EPS (faktiki vs gözlənti): ${lastEarn.map(e=>`${e.period}: ${e.actual} vs ${e.estimate}`).join(' | ')}`:''}
+
+SON 7 GÜNÜN REAL XƏBƏRLƏRİ:
+${newsList.length?newsList.map((n,i)=>`${i+1}. [${n.source}] ${n.headline}`).join('\n'):'Xəbər tapılmadı'}
+
+QAYDALAR:
+- Yalnız yuxarıdakı datadan istifadə et. Rəqəm, xəbər və ya hadisə uydurma.
+- Hansısa data yoxdursa, onu təxmin etmə, nəzərə alma.
+- "news" massivinə yalnız yuxarıdakı xəbər başlıqlarını dəyişmədən köçür. Xəbər yoxdursa boş massiv qaytar.
+- Sentiment balı yalnız bu real xəbərlərə əsaslansın.
+- stop_loss dəstək səviyyəsinə, target_price müqavimət və ya analyst konsensusuna əsaslansın.
+- confidence (1-100): göstəricilər bir-birini nə qədər təsdiqləyirsə, o qədər yüksək olsun.
+
+YALNIZ JSON cavab ver:
+{"signal":"BUY|HOLD|SELL","confidence":0,"signal_reasoning":"1-2 cümlə, konkret rəqəmlərlə","trader_note":"1-2 cümlə: giriş nöqtəsi və ya gözləmə strategiyası","trend":"Yüksəliş|Aşağı|Yatay","price_direction":"UP|DOWN|NEUTRAL","direction_reasoning":"1-2 cümlə","sentiment":{"score":0,"news":[{"title":"","sentiment":"positive|neutral|negative","source":""}]},"ai_insight":"2 cümlə Azərbaycanca","assessment":"Ucuz|Ədalətli qiymət|Baha","stop_loss":0,"target_price":0}`;
  
     const ar = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -554,6 +597,7 @@ YALNIZ JSON cavab ver (başqa heç nə yazma):
       body: JSON.stringify({
         model: 'claude-opus-4-8',
         max_tokens: 1200,
+        temperature: 0,
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -589,7 +633,7 @@ YALNIZ JSON cavab ver (başqa heç nə yazma):
         roe:m.roeTTM||null,
         assessment:ai.assessment||'—'
       },
-      technical:{rsi:ai.rsi_estimate||50, macd:ai.macd_signal||'Neytral', trend:ai.trend||'Neytral', volume:ai.volume_trend||'Sabit'},
+      technical:{rsi:realRSI||50, macd:macd?(macd.bullish?'Bullish':'Bearish'):'—', trend:ai.trend||'—', volume:volChg===null?'—':(volChg>10?'Artır':volChg<-10?'Azalır':'Sabit')},
       sentiment:ai.sentiment,
       ai_insight:ai.ai_insight,
      stop_loss:ai.stop_loss,
