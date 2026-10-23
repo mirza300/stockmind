@@ -50,8 +50,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .snote b{color:var(--green);}
  
 /* Layout */
-.layout{display:grid;grid-late-columns:280px 1fr;min-height:calc(100vh - 48px);}
-@media(max-width:768px){.layout{grid-late-columns:1fr;grid-late-rows:auto 1fr;}}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 48px);}
+@media(max-width:768px){.layout{grid-template-columns:1fr;grid-template-rows:auto 1fr;}}
 @media(max-width:768px){header{padding:0 12px;} .hst span:nth-child(4),.hst span:nth-child(5),.hst span:nth-child(6){display:none;} .setup{padding:12px;padding-top:20px;align-items:flex-start;} .scard{padding:16px;} .shdr{flex-direction:column;gap:8px;} .shpr{font-size:18px;} .shtk{font-size:18px;} .shdt{display:none;} .sbn{flex-direction:column;gap:6px;padding:10px 12px;} .bcf{display:flex;align-items:center;gap:8px;} .bcn{font-size:14px;} .g2{grid-template-columns:1fr;} .r3{gap:6px;} .rv{font-size:14px;} .tabs{overflow-x:auto;} .tab{white-space:nowrap;padding:6px 10px;font-size:9px;} .tinput{font-size:16px;} .ainput{font-size:16px;} main{padding:12px;}}
 aside{background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;height:calc(100vh - 48px);position:sticky;top:48px;overflow:hidden;}
 @media(max-width:768px){aside{height:auto;max-height:260px;position:static;border-right:none;border-bottom:1px solid var(--border);} .wl{max-height:120px;}}
@@ -425,12 +425,12 @@ function calcMACD(candles){
 }
 
 function calcVolumeTrend(candles){
-  if(candles.length<30) return null;
+  const withVol=candles.filter(c=>c.v>0);
+  if(withVol.length<30) return null;
   const avg=a=>a.reduce((s,c)=>s+c.v,0)/a.length;
-  const withVol = candles.filter(c=>c.v>0);
   return (avg(withVol.slice(-5))/avg(withVol.slice(-30))-1)*100;
 }
-  
+
 function calcSMA(candles, period) {
   if (candles.length < period) return null;
   return candles.slice(-period).reduce((s,c)=>s+c.c,0)/period;
@@ -515,9 +515,11 @@ async function analyzeStock(ticker) {
   getCandles(ticker)
 ]);
     if (!quote.c || quote.c === 0) throw new Error(`"${ticker}" tapılmadı`);
+
+    // Bugünkü şamı Finnhub datası ilə əlavə et
     const today = new Date().toISOString().split('T')[0];
     if (candles.length && candles[candles.length-1].d < today) {
-    candles.push({d: today, o: quote.o, h: quote.h, l: quote.l, c: quote.c, v: 0});
+      candles.push({d: today, o: quote.o, h: quote.h, l: quote.l, c: quote.c, v: 0});
     }
  
     // Analyst price target
@@ -604,7 +606,6 @@ YALNIZ JSON cavab ver:
         max_tokens: 1200,
         messages: [{ role: 'user', content: prompt }]
       })
-          })
     });
  
     const ad = await ar.json();
@@ -639,7 +640,7 @@ YALNIZ JSON cavab ver:
         assessment:ai.assessment||'—'
       },
       technical:{rsi:realRSI||50, macd:macd?(macd.bullish?'Bullish':'Bearish'):'—', trend:ai.trend||'—', volume:volChg===null?'—':(volChg>10?'Artır':volChg<-10?'Azalır':'Sabit')},
-      sentiment:ai.sentiment,
+      sentiment:ai.sentiment||{score:50,news:[]},
       ai_insight:ai.ai_insight,
      stop_loss:ai.stop_loss,
       target_price:ai.target_price,
@@ -838,20 +839,6 @@ function sw(idx) {
   document.querySelectorAll('.tp').forEach((p,i)=>p.classList.toggle('active',i===idx));
 }
  
-async function analyzeAll() {
-  const btn = document.getElementById('aab'); btn.disabled = true;
-  const prog = document.getElementById('bprog'); prog.style.display = 'block';
-  const total = wl.length; let done = 0;
-  for (const s of wl) {
-    document.getElementById('bpc').textContent = `${done}/${total}`;
-    document.getElementById('bpf').style.width = `${done/total*100}%`;
-    await analyzeStock(s.t); done++;
-    await new Promise(r=>setTimeout(r,1500));
-  }
-  document.getElementById('bpc').textContent = `${total}/${total}`;
-  document.getElementById('bpf').style.width = '100%';
-  setTimeout(() => { prog.style.display='none'; btn.disabled=false; }, 1500);
-}
 </script>
 </body>
 </html>
